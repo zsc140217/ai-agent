@@ -1,7 +1,12 @@
+server:
+  port: 8127  # 确保端口不冲突
+
 spring:
   application:
     name: yu-image-search-mcp-server
-  profiles:
-    active: sse
-server:
-  port: 8127
+  ai:
+    mcp:
+      server:
+        stdio: false # 关闭 stdio
+        sse:
+          enabled: true # 开启 SSE 模式

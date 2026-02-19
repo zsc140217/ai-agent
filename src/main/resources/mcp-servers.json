@@ -9,18 +9,6 @@
       "env": {
         "AMAP_MAPS_API_KEY": "18a31062a384c2490eb818a3d0a8ff70"
       }
-    },
-    "yu-image-search": {
-      "command": "java",
-      "args": [
-        "-Dspring.main.banner-mode=off",
-        "-Dlogging.level.root=OFF",
-        "-Dspring.main.web-application-type=none",
-        "-Dspring.ai.mcp.server.stdio=true",
-        "-jar",
-        "E:/Desktop/vibe coding/ai-agent/yu-ai-agent-master/yu-image-search-mcp-server/target/yu-image-search-mcp-server-0.0.1-SNAPSHOT.jar"
-      ]
     }
-
   }
 }
