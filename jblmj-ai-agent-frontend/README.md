@@ -4,7 +4,7 @@
 
 ## 功能特点
 
-- 💬 **AI恋爱大师**：智能情感顾问，为用户提供恋爱相关的建议和解答
+- 💬 **企业出差规划大师**：基于本地知识库和高德mcp来进行规划
 - 🤖 **AI超级智能体**：全能型AI助手，解决各类专业问题
 
 ## 技术栈
@@ -43,7 +43,7 @@ npm run build
 
 项目依赖以下后端接口：
 
-- `/api/ai/love_app/chat/sse` - AI恋爱大师聊天接口
+- `/api/ai/enterprise/chat/sse` - 出差规划聊天接口
 - `/api/ai/manus/chat` - AI超级智能体聊天接口
 
 后端服务默认运行在 `http://localhost:8123`

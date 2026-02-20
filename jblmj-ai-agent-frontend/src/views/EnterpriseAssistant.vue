@@ -1,8 +1,8 @@
 <template>
-  <div class="love-master-container">
+  <div class="enterprise-assistant-container">
     <div class="header">
       <div class="back-button" @click="goBack">返回</div>
-      <h1 class="title">AI恋爱大师</h1>
+      <h1 class="title">企业出差/外勤助手</h1>
       <div class="chat-id">会话ID: {{ chatId }}</div>
     </div>
     
@@ -11,13 +11,20 @@
         <ChatRoom 
           :messages="messages" 
           :connection-status="connectionStatus"
-          ai-type="love"
+          ai-type="enterprise"
           @send-message="sendMessage"
         />
       </div>
     </div>
     
     <div class="footer-container">
+      <div class="custom-footer">
+        <div class="footer-links">
+          <span>项目开源地址：</span>
+          <a href="https://github.com/zsc140217/ai-agent" target="_blank">https://github.com/zsc140217/ai-agent</a>
+        </div>
+      </div>
+      <!-- 如果你有统一的 AppFooter 组件，也可以保留 -->
       <AppFooter />
     </div>
   </div>
@@ -29,19 +36,19 @@ import { useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import ChatRoom from '../components/ChatRoom.vue'
 import AppFooter from '../components/AppFooter.vue'
-import { chatWithLoveApp } from '../api'
+import { chatWithEnterpriseApp } from '../api'
 
-// 设置页面标题和元数据
+// 设置页面标题和元数据（更有利于简历展示）
 useHead({
-  title: 'AI恋爱大师 - 鱼皮AI超级智能体应用平台',
+  title: '企业出差管家 - 智能外勤助手',
   meta: [
     {
       name: 'description',
-      content: 'AI恋爱大师是鱼皮AI超级智能体应用平台的专业情感顾问，帮你解答各种恋爱问题，提供情感建议'
+      content: '企业出差助手是基于智能体技术的专业管家，提供差旅制度查询、协议酒店推荐及行程规划服务。'
     },
     {
       name: 'keywords',
-      content: 'AI恋爱大师,情感顾问,恋爱咨询,AI聊天,情感问题,鱼皮,AI智能体'
+      content: 'AI出差助手,行程规划,MCP地图,RAG知识库,企业提效工具,智能体应用'
     }
   ]
 })
@@ -52,12 +59,11 @@ const chatId = ref('')
 const connectionStatus = ref('disconnected')
 let eventSource = null
 
-// 生成随机会话ID
+// 生成随机会话ID (前缀改为 trip)
 const generateChatId = () => {
-  return 'love_' + Math.random().toString(36).substring(2, 10)
+  return 'trip_' + Math.random().toString(36).substring(2, 10)
 }
 
-// 添加消息到列表
 const addMessage = (content, isUser) => {
   messages.value.push({
     content,
@@ -66,27 +72,23 @@ const addMessage = (content, isUser) => {
   })
 }
 
-// 发送消息
 const sendMessage = (message) => {
   addMessage(message, true)
   
-  // 连接SSE
   if (eventSource) {
     eventSource.close()
   }
   
-  // 创建一个空的AI回复消息
   const aiMessageIndex = messages.value.length
   addMessage('', false)
   
   connectionStatus.value = 'connecting'
-  eventSource = chatWithLoveApp(message, chatId.value)
+  // 调用后端接口
+  eventSource = chatWithEnterpriseApp(message, chatId.value) 
   
-  // 监听SSE消息
   eventSource.onmessage = (event) => {
     const data = event.data
     if (data && data !== '[DONE]') {
-      // 更新最新的AI消息内容，而不是创建新消息
       if (aiMessageIndex < messages.value.length) {
         messages.value[aiMessageIndex].content += data
       }
@@ -98,7 +100,6 @@ const sendMessage = (message) => {
     }
   }
   
-  // 监听SSE错误
   eventSource.onerror = (error) => {
     console.error('SSE Error:', error)
     connectionStatus.value = 'error'
@@ -106,21 +107,16 @@ const sendMessage = (message) => {
   }
 }
 
-// 返回主页
 const goBack = () => {
   router.push('/')
 }
 
-// 页面加载时添加欢迎消息
 onMounted(() => {
-  // 生成聊天ID
   chatId.value = generateChatId()
-  
-  // 添加欢迎消息
-  addMessage('欢迎来到AI恋爱大师，请告诉我你的恋爱问题，我会尽力给予帮助和建议。', false)
+  // 修改欢迎语为人设对话
+  addMessage('您好，我是您的企业出差管家。我可以帮您查询公司报销制度、规划行程路线或查看客户地址。请问有什么可以帮您？', false)
 })
 
-// 组件销毁前关闭SSE连接
 onBeforeUnmount(() => {
   if (eventSource) {
     eventSource.close()
@@ -129,11 +125,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.love-master-container {
+.enterprise-assistant-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #fff9f9;
+  /* 背景改为淡雅的商务灰蓝 */
+  background-color: #f4f7f9;
 }
 
 .header {
@@ -141,9 +138,10 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background-color: #ff6b8b;
+  /* 颜色改为商务蓝 */
+  background-color: #0052cc;
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -168,7 +166,7 @@ onBeforeUnmount(() => {
 
 .title {
   font-size: 20px;
-  font-weight: bold;
+  font-weight: 600;
   margin: 0;
 }
 
@@ -188,57 +186,39 @@ onBeforeUnmount(() => {
   padding: 16px;
   overflow: hidden;
   position: relative;
-  /* 设置最小高度确保内容显示正常 */
-  min-height: calc(100vh - 56px - 180px); /* 100vh减去头部高度和页脚高度 */
-  margin-bottom: 16px; /* 为页脚留出空间 */
+  min-height: calc(100vh - 56px - 140px);
+  margin-bottom: 16px;
+}
+
+.custom-footer {
+  background-color: #ffffff;
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid #e1e4e8;
+}
+
+.footer-links {
+  font-size: 14px;
+  color: #586069;
+}
+
+.footer-links a {
+  color: #0366d6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
 }
 
 .footer-container {
   margin-top: auto;
 }
 
-/* 响应式样式 */
 @media (max-width: 768px) {
-  .header {
-    padding: 12px 16px;
-  }
-  
-  .title {
-    font-size: 18px;
-  }
-  
-  .chat-id {
-    font-size: 12px;
-  }
-  
-  .chat-area {
-    padding: 12px;
-    min-height: calc(100vh - 48px - 160px); /* 调整计算值 */
-    margin-bottom: 12px;
-  }
+  .header { padding: 12px 16px; }
+  .title { font-size: 18px; }
+  .chat-area { min-height: calc(100vh - 48px - 120px); }
 }
-
-@media (max-width: 480px) {
-  .header {
-    padding: 10px 12px;
-  }
-  
-  .back-button {
-    font-size: 14px;
-  }
-  
-  .title {
-    font-size: 16px;
-  }
-  
-  .chat-id {
-    display: none;
-  }
-  
-  .chat-area {
-    padding: 8px;
-    min-height: calc(100vh - 42px - 150px); /* 再次调整计算值 */
-    margin-bottom: 8px;
-  }
-}
-</style> 
+</style>
