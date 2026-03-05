@@ -1,2 +1,37 @@
-# 可以编写生产环境的配置，会覆盖 application.yml 配置
-# 注意提交时不要包含敏感信息（或者不要提交该文件）
+spring:
+  application:
+    name: yu-ai-agent
+  datasource:
+    url: jdbc:postgresql://pgm-bp1j0w334bo5qm88go.rwlb.rds.aliyuncs.com:5432/jblmj_ai_agent
+    username: jblmj
+    password: Jblmj=12345
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+  ai:
+    dashscope:
+      api-key: sk-861e1fe002f04f8ea132731f38f0a566
+      chat:
+        options:
+          model: qwen-plus
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        dimensions: 1536
+        distance-type: COSINE_DISTANCE
+        max-document-batch-size: 10000
+
+server:
+  port: 80
+  servlet:
+    context-path: /api
+
+search-api:
+  api-key: LTFB4kSeNuuA7FxmEMCGVWxs
+
+logging:
+  level:
+    root: INFO
+    org.springframework.ai: INFO
