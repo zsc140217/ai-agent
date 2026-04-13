@@ -1,0 +1,252 @@
+[
+  {
+    "id": 1,
+    "query": "去北京出差住宿能报多少",
+    "difficulty": "easy",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "一类城市", "北京"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350", "二类"]
+  },
+  {
+    "id": 2,
+    "query": "去魔都出差住宿标准是什么",
+    "difficulty": "medium",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "上海", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 3,
+    "query": "杭州差旅住宿费用怎么报销",
+    "difficulty": "easy",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "杭州", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 4,
+    "query": "去深圳出差酒店能报多少钱",
+    "difficulty": "easy",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "深圳", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 5,
+    "query": "去广州出差住宿标准",
+    "difficulty": "easy",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "广州", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 6,
+    "query": "成都出差住宿报销上限",
+    "difficulty": "easy",
+    "category": "住宿费用",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "成都", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 7,
+    "query": "去省会城市出差住宿能报多少",
+    "difficulty": "medium",
+    "category": "住宿费用",
+    "city_level": "二类城市",
+    "expected_keywords": ["350", "二类城市", "省会"],
+    "expected_answer_contains": "350元",
+    "should_not_contain": ["500元"]
+  },
+  {
+    "id": 8,
+    "query": "去武汉出差住宿标准",
+    "difficulty": "medium",
+    "category": "住宿费用",
+    "city_level": "二类城市",
+    "expected_keywords": ["350", "二类城市"],
+    "expected_answer_contains": "350元",
+    "should_not_contain": ["500元"]
+  },
+  {
+    "id": 9,
+    "query": "去南京出差酒店费用报销",
+    "difficulty": "medium",
+    "category": "住宿费用",
+    "city_level": "二类城市",
+    "expected_keywords": ["350", "二类城市"],
+    "expected_answer_contains": "350元",
+    "should_not_contain": ["500元"]
+  },
+  {
+    "id": 10,
+    "query": "去西安出差住宿能报多少",
+    "difficulty": "medium",
+    "category": "住宿费用",
+    "city_level": "二类城市",
+    "expected_keywords": ["350", "二类城市"],
+    "expected_answer_contains": "350元",
+    "should_not_contain": ["500元"]
+  },
+  {
+    "id": 11,
+    "query": "出差坐高铁可以报销吗",
+    "difficulty": "easy",
+    "category": "交通费用",
+    "city_level": "通用",
+    "expected_keywords": ["高铁", "二等座"],
+    "expected_answer_contains": "二等座",
+    "should_not_contain": ["一等座", "商务座"]
+  },
+  {
+    "id": 12,
+    "query": "什么情况下可以坐飞机",
+    "difficulty": "medium",
+    "category": "交通费用",
+    "city_level": "通用",
+    "expected_keywords": ["飞机", "4小时", "经济舱"],
+    "expected_answer_contains": "4小时",
+    "should_not_contain": ["商务舱"]
+  },
+  {
+    "id": 13,
+    "query": "出差飞机票能报销吗",
+    "difficulty": "medium",
+    "category": "交通费用",
+    "city_level": "通用",
+    "expected_keywords": ["飞机", "经济舱", "4小时"],
+    "expected_answer_contains": "经济舱",
+    "should_not_contain": ["商务舱", "头等舱"]
+  },
+  {
+    "id": 14,
+    "query": "出差每天伙食补助多少",
+    "difficulty": "easy",
+    "category": "补贴标准",
+    "city_level": "通用",
+    "expected_keywords": ["100", "伙食", "补助"],
+    "expected_answer_contains": "100元",
+    "should_not_contain": ["80元"]
+  },
+  {
+    "id": 15,
+    "query": "出差市内交通补助标准",
+    "difficulty": "easy",
+    "category": "补贴标准",
+    "city_level": "通用",
+    "expected_keywords": ["80", "市内交通", "补助"],
+    "expected_answer_contains": "80元",
+    "should_not_contain": ["100元"]
+  },
+  {
+    "id": 16,
+    "query": "如果打车了还能领交通补助吗",
+    "difficulty": "hard",
+    "category": "补贴标准",
+    "city_level": "通用",
+    "expected_keywords": ["打车", "取消", "补助"],
+    "expected_answer_contains": "取消",
+    "should_not_contain": ["可以同时"]
+  },
+  {
+    "id": 17,
+    "query": "去杭州拜访某某科技公司的联系人是谁",
+    "difficulty": "easy",
+    "category": "客户信息",
+    "city_level": "一类城市",
+    "expected_keywords": ["张总", "杭州", "某某科技"],
+    "expected_answer_contains": "张总",
+    "should_not_contain": ["李经理"]
+  },
+  {
+    "id": 18,
+    "query": "杭州某某科技的地址在哪里",
+    "difficulty": "easy",
+    "category": "客户信息",
+    "city_level": "一类城市",
+    "expected_keywords": ["西湖区", "余杭塘路", "866"],
+    "expected_answer_contains": "余杭塘路",
+    "should_not_contain": ["中关村"]
+  },
+  {
+    "id": 19,
+    "query": "北京未来工业集团的联系人",
+    "difficulty": "easy",
+    "category": "客户信息",
+    "city_level": "一类城市",
+    "expected_keywords": ["李经理", "北京"],
+    "expected_answer_contains": "李经理",
+    "should_not_contain": ["张总"]
+  },
+  {
+    "id": 20,
+    "query": "北京未来工业集团在哪",
+    "difficulty": "easy",
+    "category": "客户信息",
+    "city_level": "一类城市",
+    "expected_keywords": ["海淀区", "中关村"],
+    "expected_answer_contains": "中关村",
+    "should_not_contain": ["西湖区"]
+  },
+  {
+    "id": 21,
+    "query": "明天去上海出差，住宿和伙食一共能报多少",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "100", "600"],
+    "expected_answer_contains": "600",
+    "should_not_contain": ["450"]
+  },
+  {
+    "id": 22,
+    "query": "去二线城市出差一天总共能报销多少钱",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "city_level": "二类城市",
+    "expected_keywords": ["350", "100", "80", "530"],
+    "expected_answer_contains": "530",
+    "should_not_contain": ["680"]
+  },
+  {
+    "id": 23,
+    "query": "去深圳出差3天，住宿和伙食总预算",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "100", "1800"],
+    "expected_answer_contains": "1800",
+    "should_not_contain": ["1350"]
+  },
+  {
+    "id": 24,
+    "query": "从北京到上海出差，怎么坐车最划算",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["高铁", "二等座", "飞机"],
+    "expected_answer_contains": "高铁",
+    "should_not_contain": ["一等座"]
+  },
+  {
+    "id": 25,
+    "query": "去杭州拜访客户，住宿标准和客户地址",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "余杭塘路", "张总"],
+    "expected_answer_contains": "余杭塘路",
+    "should_not_contain": ["350"]
+  }
+]

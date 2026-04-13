@@ -13,9 +13,9 @@ import java.util.List;
 
 /**
  * 恋爱大师向量数据库配置（初始化基于内存的向量数据库 Bean）
- * 已切换到 PgVector，此配置暂时禁用
+ * 已切换回内存向量库
  */
-//@Configuration
+@Configuration
 public class LoveAppVectorStoreConfig {
 
     @Resource

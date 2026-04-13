@@ -1,15 +1,15 @@
 spring:
   application:
     name: yu-ai-agent
-  datasource:
-    url: jdbc:postgresql://pgm-bp1j0w334bo5qm88go.rwlb.rds.aliyuncs.com:5432/jblmj_ai_agent
-    username: jblmj
-    password: Jblmj=12345
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 30000
+#  datasource:
+#    url: jdbc:postgresql://pgm-bp1j0w334bo5qm88go.rwlb.rds.aliyuncs.com:5432/jblmj_ai_agent
+#    username: jblmj
+#    password: Jblmj=12345
+#    driver-class-name: org.postgresql.Driver
+#    hikari:
+#      maximum-pool-size: 5
+#      minimum-idle: 2
+#      connection-timeout: 30000
   ai:
     dashscope:
       api-key: sk-861e1fe002f04f8ea132731f38f0a566

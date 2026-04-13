@@ -72,7 +72,8 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-markdown-document-reader</artifactId>
         </dependency>
-        <!-- 手动整合 PGVector 向量存储 -->
+        <!-- PGVector / PostgreSQL 依赖已暂时注释，当前改为使用内存向量库 -->
+        <!--
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
@@ -86,6 +87,7 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pgvector-store</artifactId>
         </dependency>
+        -->
         <!-- 自动整合 PGVector 向量存储 -->
         <!--        <dependency>-->
         <!--            <groupId>org.springframework.ai</groupId>-->

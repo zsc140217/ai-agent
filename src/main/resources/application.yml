@@ -3,16 +3,16 @@ spring:
     name: yu-ai-agent
   profiles:
     active: local
-  # PgVector 数据库配置
-  datasource:
-    url: jdbc:postgresql://pgm-bp1j0w334bo5qm88go.rwlb.rds.aliyuncs.com:5432/jblmj_ai_agent
-    username: jblmj
-    password: Jblmj=12345
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 30000
+  # PgVector 数据库配置（已暂时注释，避免启动依赖 PostgreSQL / pgvector）
+#  datasource:
+#    url: jdbc:postgresql://pgm-bp1j0w334bo5qm88go.rwlb.rds.aliyuncs.com:5432/jblmj_ai_agent
+#    username: jblmj
+#    password: Jblmj=12345
+#    driver-class-name: org.postgresql.Driver
+#    hikari:
+#      maximum-pool-size: 5
+#      minimum-idle: 2
+#      connection-timeout: 30000
   ai:
     dashscope:
       # 需要替换为你自己的 key
