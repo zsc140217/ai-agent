@@ -148,15 +148,34 @@ public class ComplexityAssessor {
     }
 
     /**
-     * 统计意图关键词数量
+     * 统计意图关键词数量（混合策略：关键词 + LLM 兜底）
      */
     private int countIntents(String query) {
+        // 1. 先用关键词匹配（快速）
+        int keywordCount = countIntentsByKeyword(query);
+
+        // 2. 如果关键词匹配不到任何意图，用 LLM 兜底（准确）
+        if (keywordCount == 0) {
+            log.info("关键词匹配未找到意图，使用 LLM 兜底判断");
+            int llmCount = countIntentsByLLM(query);
+            log.info("LLM 判断意图数: {}", llmCount);
+            return llmCount;
+        }
+
+        log.info("关键词匹配意图数: {}", keywordCount);
+        return keywordCount;
+    }
+
+    /**
+     * 通过关键词统计意图数量
+     */
+    private int countIntentsByKeyword(String query) {
         String[][] intentGroups = {
-                {"天气", "温度", "下雨", "带伞", "穿什么"},           // 天气意图
-                {"客户", "公司", "地址", "联系", "拜访"},            // 客户意图
-                {"路线", "怎么去", "交通", "地铁", "打车"},          // 路线意图
-                {"酒店", "住宿", "推荐", "协议酒店"},                // 酒店意图
-                {"补贴", "报销", "标准", "伙食", "交通费"}           // 政策意图
+                {"天气", "温度", "下雨", "带伞", "穿什么", "气温", "热", "冷", "晴", "阴"},           // 天气意图
+                {"客户", "公司", "地址", "联系", "拜访", "企业", "厂商"},            // 客户意图
+                {"路线", "怎么去", "交通", "地铁", "打车", "距离", "多远", "导航"},          // 路线意图
+                {"酒店", "住宿", "推荐", "协议酒店", "宾馆", "旅馆"},                // 酒店意图
+                {"补贴", "报销", "标准", "伙食", "交通费", "费用", "能报多少"}           // 政策意图
         };
 
         int count = 0;
@@ -170,6 +189,62 @@ public class ComplexityAssessor {
         }
 
         return count;
+    }
+
+    /**
+     * 通过 LLM 统计意图数量（兜底方案）
+     */
+    private int countIntentsByLLM(String query) {
+        String prompt = String.format("""
+                分析以下查询包含几个意图，只回答数字（0、1、2、3...），不要解释。
+
+                意图类型：
+                1. 天气意图：查询天气、温度、是否下雨等
+                2. 客户意图：查询客户公司地址、联系人等
+                3. 路线意图：查询路线、距离、交通方式等
+                4. 酒店意图：查询或推荐酒店、住宿等
+                5. 政策意图：查询报销标准、补贴政策等
+
+                示例：
+                - "北京天气怎么样" → 1（只有天气意图）
+                - "魔都今天气温如何" → 1（只有天气意图，魔都指上海）
+                - "查北京天气并推荐酒店" → 2（天气 + 酒店）
+                - "你好" → 0（没有明确意图）
+
+                查询：%s
+
+                意图数量：
+                """, query);
+
+        try {
+            String response = chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
+
+            // 检查空值
+            if (response == null || response.trim().isEmpty()) {
+                log.warn("LLM 返回空内容，默认为 1");
+                return 1;
+            }
+
+            response = response.trim();
+
+            // 提取数字
+            String numberStr = response.replaceAll("[^0-9]", "");
+            if (numberStr.isEmpty()) {
+                log.warn("LLM 返回无法解析的意图数: {}, 默认为 1", response);
+                return 1;
+            }
+
+            int count = Integer.parseInt(numberStr);
+            // 限制范围 0-5
+            return Math.max(0, Math.min(count, 5));
+
+        } catch (Exception e) {
+            log.error("LLM 意图判断失败，默认返回 1", e);
+            return 1;  // 降级：默认为单一意图
+        }
     }
 
     /**
@@ -194,14 +269,33 @@ public class ComplexityAssessor {
     }
 
     /**
-     * 统计实体数量（城市、公司等）
+     * 统计实体数量（城市、公司等）- 混合策略：关键词 + LLM 兜底
      */
     private int countEntities(String query) {
+        // 1. 先用关键词匹配（快速）
+        int keywordCount = countEntitiesByKeyword(query);
+
+        // 2. 如果关键词匹配不到实体，但查询中可能包含实体（如"魔都"），用 LLM 兜底
+        if (keywordCount == 0 && seemsToContainEntity(query)) {
+            log.info("关键词未匹配到实体，但疑似包含实体，使用 LLM 兜底判断");
+            int llmCount = countEntitiesByLLM(query);
+            log.info("LLM 判断实体数: {}", llmCount);
+            return llmCount;
+        }
+
+        return keywordCount;
+    }
+
+    /**
+     * 通过关键词统计实体数量
+     */
+    private int countEntitiesByKeyword(String query) {
         String[] entities = {
                 // 城市
                 "北京", "上海", "广州", "深圳", "杭州", "成都", "西安", "南京", "武汉", "重庆",
+                "天津", "苏州", "郑州", "长沙", "沈阳", "青岛", "无锡", "佛山", "宁波", "东莞",
                 // 公司（示例）
-                "阿里巴巴", "腾讯", "字节跳动", "华为", "百度"
+                "阿里巴巴", "腾讯", "字节跳动", "华为", "百度", "京东", "美团", "拼多多", "小米", "网易"
         };
 
         int count = 0;
@@ -212,6 +306,83 @@ public class ComplexityAssessor {
         }
 
         return count;
+    }
+
+    /**
+     * 判断查询中是否疑似包含实体（用于触发 LLM 兜底）
+     */
+    private boolean seemsToContainEntity(String query) {
+        // 如果包含"去"、"到"、"在"等介词，可能包含地点实体
+        String[] locationPrepositions = {"去", "到", "在", "从", "往"};
+        for (String prep : locationPrepositions) {
+            if (query.contains(prep)) {
+                return true;
+            }
+        }
+
+        // 如果包含城市别名或口语化表达
+        String[] cityNicknames = {"魔都", "帝都", "羊城", "蓉城", "鹏城"};
+        for (String nickname : cityNicknames) {
+            if (query.contains(nickname)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 通过 LLM 统计实体数量（兜底方案）
+     */
+    private int countEntitiesByLLM(String query) {
+        String prompt = String.format("""
+                分析以下查询包含几个地点或公司实体，只回答数字（0、1、2、3...），不要解释。
+
+                实体类型：
+                - 城市/地点：北京、上海、魔都（上海）、帝都（北京）等
+                - 公司/企业：阿里巴巴、腾讯、华为等
+
+                示例：
+                - "北京天气怎么样" → 1（北京）
+                - "魔都今天气温如何" → 1（魔都指上海）
+                - "上海和广州天气对比" → 2（上海、广州）
+                - "去帝都出差" → 1（帝都指北京）
+                - "天气怎么样" → 0（没有地点）
+
+                查询：%s
+
+                实体数量：
+                """, query);
+
+        try {
+            String response = chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
+
+            // 检查空值
+            if (response == null || response.trim().isEmpty()) {
+                log.warn("LLM 返回空内容，默认为 0");
+                return 0;
+            }
+
+            response = response.trim();
+
+            // 提取数字
+            String numberStr = response.replaceAll("[^0-9]", "");
+            if (numberStr.isEmpty()) {
+                log.warn("LLM 返回无法解析的实体数: {}, 默认为 0", response);
+                return 0;
+            }
+
+            int count = Integer.parseInt(numberStr);
+            // 限制范围 0-10
+            return Math.max(0, Math.min(count, 10));
+
+        } catch (Exception e) {
+            log.error("LLM 实体判断失败，默认返回 0", e);
+            return 0;
+        }
     }
 
     /**
