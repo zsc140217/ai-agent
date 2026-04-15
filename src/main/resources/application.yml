@@ -19,7 +19,7 @@ spring:
       api-key: sk-861e1fe002f04f8ea132731f38f0a566
       chat:
         options:
-          model: qwen-plus
+          model: qwen-plus-2025-07-28
     ollama:
       base-url: http://localhost:11434
       chat:
@@ -38,6 +38,13 @@ spring:
         dimensions: 1536
         distance-type: COSINE_DISTANCE
         max-document-batch-size: 10000
+
+# 和风天气 API 配置
+qweather:
+  api-key: 21fbbbf3b8fb4932b68ca51544dfbb8b
+  api-host: mr487tqjdj.re.qweatherapi.com
+  cli-path: tools/weather-cli.js
+
 server:
   port: 8123
   servlet:
@@ -53,7 +60,7 @@ springdoc:
   group-configs:
     - group: 'default'
       paths-to-match: '/**'
-      packages-to-scan: com.yupi.yuaiagent.controller
+      packages-to-scan: com.jblmj.aiagent.controller
 # knife4j config
 knife4j:
   enable: true

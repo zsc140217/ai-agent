@@ -1,0 +1,42 @@
+[
+  {
+    "id": "weather_1",
+    "query": "我下周要去北京出差，帮我查一下北京的天气",
+    "difficulty": "easy",
+    "expected_tool_call": true,
+    "expected_keywords": ["北京", "天气", "温度"],
+    "should_not_contain": []
+  },
+  {
+    "id": "weather_2",
+    "query": "杭州现在天气怎么样？需要带伞吗？",
+    "difficulty": "easy",
+    "expected_tool_call": true,
+    "expected_keywords": ["杭州", "天气"],
+    "should_not_contain": []
+  },
+  {
+    "id": "weather_3",
+    "query": "我要去深圳拜访客户，帮我查一下深圳的天气，顺便推荐一下穿什么衣服",
+    "difficulty": "medium",
+    "expected_tool_call": true,
+    "expected_keywords": ["深圳", "天气", "温度"],
+    "should_not_contain": []
+  },
+  {
+    "id": "weather_4",
+    "query": "上海和广州哪个城市天气更好？",
+    "difficulty": "hard",
+    "expected_tool_call": true,
+    "expected_keywords": ["上海", "广州", "天气"],
+    "should_not_contain": []
+  },
+  {
+    "id": "weather_5",
+    "query": "出差期间的伙食补助标准是什么",
+    "difficulty": "easy",
+    "expected_tool_call": false,
+    "expected_keywords": ["100", "伙食"],
+    "should_not_contain": []
+  }
+]

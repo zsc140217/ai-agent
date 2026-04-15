@@ -1,0 +1,72 @@
+[
+  {
+    "id": "mcp_1",
+    "query": "我在杭州西湖区古墩路456号，明天要去杭州萧山国际机场，帮我规划路线，给出地铁和打车的时间和费用",
+    "difficulty": "medium",
+    "category": "路线规划",
+    "expected_tool_call": true,
+    "expected_keywords": ["距离", "时间", "分钟", "公里", "路线"],
+    "should_contain_info": ["交通方式", "预计时长"],
+    "description": "基础路线规划，需要调用地图工具"
+  },
+  {
+    "id": "mcp_2",
+    "query": "从杭州西湖区到虹桥机场多远，早高峰建议怎么走",
+    "difficulty": "medium",
+    "category": "距离查询",
+    "expected_tool_call": true,
+    "expected_keywords": ["距离", "公里", "时间", "路线"],
+    "should_contain_info": ["距离信息", "路线建议"],
+    "description": "距离查询+路线建议，需要调用地图工具"
+  },
+  {
+    "id": "mcp_3",
+    "query": "我要去北京中关村某某科技公司出差，帮我推荐离客户近的酒店，并给出从酒店到客户公司的通勤路线",
+    "difficulty": "hard",
+    "category": "综合查询",
+    "expected_tool_call": true,
+    "expected_keywords": ["酒店", "距离", "路线", "通勤"],
+    "should_contain_info": ["酒店推荐", "通勤方案"],
+    "description": "复杂场景：酒店推荐+路线规划，需要多次工具调用"
+  },
+  {
+    "id": "mcp_4",
+    "query": "杭州出差，住在古墩路附近的酒店，明早9点要到客户公司开会，建议几点出发",
+    "difficulty": "hard",
+    "category": "时间规划",
+    "expected_tool_call": true,
+    "expected_keywords": ["时间", "分钟", "出发", "路线"],
+    "should_contain_info": ["出发时间建议", "通勤时长"],
+    "description": "时间倒推规划，需要调用地图工具计算通勤时间"
+  },
+  {
+    "id": "mcp_5",
+    "query": "比较一下从杭州西湖区古墩路和北山路两个酒店到萧山机场的通勤成本（时间+费用）",
+    "difficulty": "hard",
+    "category": "对比分析",
+    "expected_tool_call": true,
+    "expected_keywords": ["对比", "时间", "费用", "距离"],
+    "should_contain_info": ["两个方案对比", "成本分析"],
+    "description": "多方案对比，需要多次调用地图工具并做对比分析"
+  },
+  {
+    "id": "mcp_6",
+    "query": "杭州一类城市的住宿费用标准是多少",
+    "difficulty": "easy",
+    "category": "对照组-不需要MCP",
+    "expected_tool_call": false,
+    "expected_keywords": ["500", "住宿", "标准"],
+    "should_contain_info": ["金额信息"],
+    "description": "对照组：纯RAG查询，不应该调用地图工具"
+  },
+  {
+    "id": "mcp_7",
+    "query": "出差期间的伙食补助标准是什么",
+    "difficulty": "easy",
+    "category": "对照组-不需要MCP",
+    "expected_tool_call": false,
+    "expected_keywords": ["100", "伙食", "补助"],
+    "should_contain_info": ["补助标准"],
+    "description": "对照组：纯RAG查询，不应该调用地图工具"
+  }
+]
