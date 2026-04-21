@@ -81,32 +81,63 @@ public class TaskDecomposer {
     }
 
     /**
-     * 构建任务分解的 Prompt
+     * 构建任务分解的 Prompt（优化版：支持任务依赖）
      */
     private String buildDecomposePrompt(String query) {
         return String.format("""
-                你是一个任务规划专家，请将用户的复杂查询分解为多个子任务。
+                你是一个任务规划专家，请将用户的复杂查询分解为多个子任务，并标注任务之间的依赖关系。
 
                 可用的任务类型：
                 1. QUERY_WEATHER: 查询天气（参数：city）
-                2. QUERY_ROUTE: 查询路线（参数：from, to）
+                2. QUERY_ROUTE: 查询路线（参数：origin, destination）
                 3. QUERY_CUSTOMER: 查询客户信息（参数：keyword）
                 4. QUERY_POLICY: 查询差旅政策（参数：keyword）
                 5. QUERY_HOTEL: 查询酒店推荐（参数：city）
 
+                任务依赖规则：
+                - 如果任务 B 需要任务 A 的结果，则 B 依赖 A（在 dependsOn 中填写 A 的 id）
+                - 例如：查询路线需要先知道客户地址，所以路线查询依赖客户查询
+                - 没有依赖关系的任务可以并行执行
+
                 请按照以下 JSON 格式输出（只输出 JSON，不要其他内容）：
                 [
                   {
+                    "id": 0,
                     "taskType": "QUERY_WEATHER",
                     "description": "查询杭州天气",
-                    "parameters": "{\\"city\\": \\"杭州\\"}"
+                    "parameters": "{\\"city\\": \\"杭州\\"}",
+                    "dependsOn": [],
+                    "priority": 0
                   },
                   {
+                    "id": 1,
                     "taskType": "QUERY_CUSTOMER",
                     "description": "查询客户公司地址",
-                    "parameters": "{\\"keyword\\": \\"阿里巴巴\\"}"
+                    "parameters": "{\\"keyword\\": \\"阿里巴巴\\"}",
+                    "dependsOn": [],
+                    "priority": 0
+                  },
+                  {
+                    "id": 2,
+                    "taskType": "QUERY_ROUTE",
+                    "description": "查询从酒店到客户公司的路线",
+                    "parameters": "{\\"origin\\": \\"杭州西湖区\\", \\"destination\\": \\"阿里巴巴\\"}",
+                    "dependsOn": [1],
+                    "priority": 1
                   }
                 ]
+
+                示例 1：
+                用户查询："明天去杭州出差，查一下天气，还要拜访阿里巴巴，帮我规划一下路线"
+                分解结果：
+                - 任务 0：查询杭州天气（无依赖，可并行）
+                - 任务 1：查询阿里巴巴地址（无依赖，可并行）
+                - 任务 2：查询路线（依赖任务 1，因为需要知道目的地地址）
+
+                示例 2：
+                用户查询："去北京出差，住宿标准是多少"
+                分解结果：
+                - 任务 0：查询北京住宿标准（无依赖）
 
                 用户查询：%s
 
@@ -134,12 +165,58 @@ public class TaskDecomposer {
                 task.setResult(null);
             }
 
+            // 验证任务依赖关系（检测循环依赖）
+            validateTaskDependencies(tasks);
+
+            log.info("任务分解成功，共 {} 个子任务", tasks.size());
+            for (SubTask task : tasks) {
+                log.info("  - 任务 {}: {} (依赖: {})", task.getId(), task.getDescription(), task.getDependsOn());
+            }
+
             return tasks;
 
         } catch (Exception e) {
             log.error("解析任务列表失败: {}", response, e);
             throw new RuntimeException("解析任务列表失败", e);
         }
+    }
+
+    /**
+     * 验证任务依赖关系（检测循环依赖）
+     */
+    private void validateTaskDependencies(List<SubTask> tasks) {
+        for (SubTask task : tasks) {
+            if (hasCyclicDependency(task, tasks, new ArrayList<>())) {
+                log.error("检测到循环依赖: 任务 {} - {}", task.getId(), task.getDescription());
+                throw new RuntimeException("任务依赖关系存在循环: " + task.getDescription());
+            }
+        }
+    }
+
+    /**
+     * 检测循环依赖（深度优先搜索）
+     */
+    private boolean hasCyclicDependency(SubTask task, List<SubTask> allTasks, List<Integer> visited) {
+        if (visited.contains(task.getId())) {
+            return true;  // 发现循环
+        }
+
+        visited.add(task.getId());
+
+        if (task.getDependsOn() != null) {
+            for (int depId : task.getDependsOn()) {
+                SubTask depTask = allTasks.stream()
+                        .filter(t -> t.getId() == depId)
+                        .findFirst()
+                        .orElse(null);
+
+                if (depTask != null && hasCyclicDependency(depTask, allTasks, new ArrayList<>(visited))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -171,13 +248,77 @@ public class TaskDecomposer {
         List<SubTask> tasks = new ArrayList<>();
 
         SubTask task = new SubTask();
+        task.setId(0);
         task.setTaskType("QUERY_POLICY");  // 默认走 RAG 查询
         task.setDescription("查询差旅政策");
         task.setParameters("{\"keyword\": \"" + query + "\"}");
+        task.setDependsOn(new ArrayList<>());
+        task.setPriority(0);
         task.setSuccess(false);
 
         tasks.add(task);
 
         return tasks;
+    }
+
+    /**
+     * 按依赖关系排序任务（拓扑排序）
+     * 返回可以按顺序执行的任务列表
+     */
+    public List<List<SubTask>> sortTasksByDependency(List<SubTask> tasks) {
+        List<List<SubTask>> result = new ArrayList<>();
+        List<SubTask> remaining = new ArrayList<>(tasks);
+        List<SubTask> completed = new ArrayList<>();
+
+        while (!remaining.isEmpty()) {
+            // 找出当前可以执行的任务（所有依赖都已完成）
+            List<SubTask> currentBatch = new ArrayList<>();
+            for (SubTask task : remaining) {
+                if (canExecuteNow(task, completed)) {
+                    currentBatch.add(task);
+                }
+            }
+
+            if (currentBatch.isEmpty()) {
+                log.error("无法继续执行，可能存在循环依赖或依赖的任务不存在");
+                log.error("剩余任务: {}", remaining.stream().map(t -> "任务" + t.getId()).toList());
+                log.error("已完成任务: {}", completed.stream().map(t -> "任务" + t.getId()).toList());
+                break;
+            }
+
+            // 按优先级排序
+            currentBatch.sort((a, b) -> Integer.compare(a.getPriority(), b.getPriority()));
+
+            result.add(currentBatch);
+            completed.addAll(currentBatch);
+            remaining.removeAll(currentBatch);
+        }
+
+        log.info("任务排序完成，共 {} 批次", result.size());
+        for (int i = 0; i < result.size(); i++) {
+            log.info("  批次 {}: {} 个任务可并行执行", i, result.get(i).size());
+        }
+
+        return result;
+    }
+
+    /**
+     * 判断任务是否可以执行（所有依赖都已完成）
+     */
+    private boolean canExecuteNow(SubTask task, List<SubTask> completedTasks) {
+        if (task.getDependsOn() == null || task.getDependsOn().isEmpty()) {
+            return true;
+        }
+
+        // 检查所有依赖的任务是否都在 completedTasks 列表中
+        for (int depId : task.getDependsOn()) {
+            boolean depCompleted = completedTasks.stream()
+                    .anyMatch(t -> t.getId() == depId);
+            if (!depCompleted) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

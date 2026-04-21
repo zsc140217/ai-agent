@@ -195,26 +195,70 @@
 
 ## 🚀 核心代码实现
 
-### 1. 工作流编排器（核心创新 ⭐）
+### 1. Skill 架构（核心创新 ⭐ 新增）
 ```java
-// src/main/java/com/jblmj/aiagent/app/WorkflowOrchestrator.java
-public String route(String query, String chatId) {
-    // 1. 评估复杂度
-    QueryComplexity complexity = complexityAssessor.assess(query);
+// Skill 定义：一个任务一个 Skill
+@SkillComponent(
+    name = "weather_query",
+    description = "查询天气信息",
+    keywords = {"天气", "温度"}
+)
+public class WeatherQuerySkill implements Skill {
+    @Resource
+    private WeatherQueryTool weatherQueryTool;  // Tool 层
     
-    // 2. 根据复杂度选择策略
-    return switch (complexity) {
-        case SIMPLE -> handleSimpleQuery(query, chatId);    // 关键词匹配 + 直接调用
-        case MEDIUM -> handleMediumQuery(query, chatId);    // 关键词匹配 + 循环调用
-        case COMPLEX -> handleComplexQuery(query, chatId);  // 任务分解 + 依次执行
-    };
+    public String execute(String query, String chatId) {
+        List<String> cities = extractCities(query);
+        if (cities.size() == 1) {
+            return weatherQueryTool.queryWeather(cities.get(0));
+        } else {
+            return compareWeather(cities);
+        }
+    }
+}
+
+// Skill 自动注册
+@Component
+public class SkillRegistry implements ApplicationContextAware {
+    public void setApplicationContext(ApplicationContext context) {
+        // 扫描所有 @SkillComponent 注解的类
+        Map<String, Object> beans = context.getBeansWithAnnotation(SkillComponent.class);
+        for (Object bean : beans.values()) {
+            if (bean instanceof Skill) {
+                register((Skill) bean);
+            }
+        }
+    }
 }
 ```
-**设计思路**：不同复杂度的查询，使用不同的处理策略，不完全依赖 LLM 决策。
+**设计思路**：Skill 是面向用户任务的功能单元，一个任务对应一个 Skill。Skill 内部调用 Service（框架能力）和 Tool（原子能力）。
 
 ---
 
-### 2. 复杂度评估器（混合判断）
+### 2. 工作流编排器（核心创新 ⭐）
+```java
+// src/main/java/com/jblmj/aiagent/app/WorkflowOrchestrator.java
+public String route(String query, String chatId) {
+    // 1. 优先使用 Skill 处理
+    Skill skill = skillRegistry.selectSkill(query);
+    if (skill != null) {
+        return skill.execute(query, chatId);
+    }
+    
+    // 2. 降级到传统复杂度评估流程
+    QueryComplexity complexity = complexityAssessor.assess(query);
+    return switch (complexity) {
+        case SIMPLE -> handleSimpleQuery(query, chatId);
+        case MEDIUM -> handleMediumQuery(query, chatId);
+        case COMPLEX -> handleComplexQuery(query, chatId);
+    };
+}
+```
+**设计思路**：优先使用 Skill 处理（面向用户任务），失败时降级到传统流程。
+
+---
+
+### 3. 复杂度评估器（混合判断）
 ```java
 // src/main/java/com/jblmj/aiagent/service/ComplexityAssessor.java
 public QueryComplexity assess(String query) {
@@ -238,7 +282,7 @@ public QueryComplexity assess(String query) {
 
 ---
 
-### 3. 任务分解器（结构化输出）
+### 4. 任务分解器（结构化输出）
 ```java
 // src/main/java/com/jblmj/aiagent/service/TaskDecomposer.java
 public List<SubTask> decompose(String query) {
@@ -312,6 +356,7 @@ curl -N "http://localhost:8123/api/ai/manus/chat?message=查询公司到虹桥�
 2. **混合判断**：80% 用规则判断（快速），20% 用 LLM 判断（准确），准确率 90%，延迟 < 500ms
 3. **任务分解**：让 LLM 生成 JSON 格式的子任务列表，代码依次执行，LLM 整合结果
 4. **降级策略**：每个环节都有降级方案，确保系统稳定性（如任务分解失败 → 降级为单个 RAG 任务）
+5. **Skill 架构** ⭐ 新增：标准的 Skill 定义（一个任务一个 Skill），Skill 内部调用 Service 和 Tool，符合企业级 AI 标准
 
 ---
 
@@ -324,9 +369,13 @@ curl -N "http://localhost:8123/api/ai/manus/chat?message=查询公司到虹桥�
 - [x] SSE 流式响应
 
 ### Phase 2：工程化增强（进行中 🚧）
+- [x] **技能编排系统（Skill Registry + 动态路由）** ✅ 已完成
+  - 实现了标准的 Skill 架构（一个任务一个 Skill）
+  - 基于注解的自动注册机制
+  - 支持关键词匹配和降级策略
+  - 已实现 2 个 Skill：WeatherQuerySkill、TravelPlanningSkill
 - [ ] Prometheus + Grafana 监控（QPS、延迟、工具调用成功率）
 - [ ] CLI 命令行工具（`plan-trip`、`ask-policy`、`run-benchmark`）
-- [ ] 技能编排系统（Skill Registry + 动态路由）
 - [ ] 完整评测集与自动化测试
 
 ### Phase 3：企业级特性（规划中 📋）

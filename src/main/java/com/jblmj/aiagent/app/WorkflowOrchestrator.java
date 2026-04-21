@@ -6,6 +6,8 @@ import com.jblmj.aiagent.model.QueryComplexity;
 import com.jblmj.aiagent.model.SubTask;
 import com.jblmj.aiagent.service.ComplexityAssessor;
 import com.jblmj.aiagent.service.TaskDecomposer;
+import com.jblmj.aiagent.skill.Skill;
+import com.jblmj.aiagent.skill.SkillRegistry;
 import com.jblmj.aiagent.tools.WeatherQueryTool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,33 +15,37 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Resource;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * 工作流编排器 2.0
+ * 工作流编排器 3.0 - 基于标准 Skill 架构
  *
- * 核心升级：
- * 1. 集成复杂度评估框架（ComplexityAssessor）
- * 2. 集成任务分解器（TaskDecomposer）
- * 3. 根据复杂度自动选择处理策略
+ * 核心设计：
+ * 1. Skill 是面向用户任务的功能单元（查天气、规划行程）
+ * 2. Service 是框架层的能力（复杂度评估、任务分解）
+ * 3. Tool 是原子能力（API 调用、数据库查询）
  *
- * 三种处理策略：
- * - SIMPLE: 关键词匹配 + 预编排（单次工具调用）
- * - MEDIUM: 关键词匹配 + 预编排（多次工具调用）
- * - COMPLEX: 任务分解 + 依次执行 + LLM 整合
+ * 路由策略：
+ * 1. 优先使用 Skill 处理（面向用户任务）
+ * 2. 如果没有匹配的 Skill，降级到传统复杂度评估流程
  *
- * 面试价值：
- * - 展示完整的 Agent 架构设计能力
- * - 体现对不同复杂度场景的处理策略
- * - 证明你理解如何平衡智能性和稳定性
+ * 面试要点：
+ * - Skill 是面向用户的任务，不是"能力"或"中间件"
+ * - ComplexityAssessor、TaskDecomposer 是 Service，不是 Skill
+ * - 这符合标准的 Skill 定义：一个任务一个 Skill
  *
  * @author jblmj
  */
 @Slf4j
 @Component
 public class WorkflowOrchestrator {
+
+    @Resource
+    private SkillRegistry skillRegistry;
 
     @Resource
     private WeatherQueryTool weatherQueryTool;
@@ -72,6 +78,10 @@ public class WorkflowOrchestrator {
     /**
      * 智能路由：根据用户意图选择执行策略
      *
+     * 路由策略：
+     * 1. 优先尝试使用 Skill 处理（面向用户任务）
+     * 2. 如果没有匹配的 Skill，降级到传统复杂度评估流程
+     *
      * @param query 用户查询
      * @param chatId 会话 ID
      * @return 响应结果
@@ -81,6 +91,29 @@ public class WorkflowOrchestrator {
         log.info("工作流路由开始: {}", query);
         log.info("========================================");
 
+        // 1. 尝试使用 Skill 处理
+        Skill skill = skillRegistry.selectSkill(query);
+        if (skill != null) {
+            log.info("使用 Skill: {}", skill.getName());
+            try {
+                String result = skill.execute(query, chatId);
+                log.info("Skill 执行成功");
+                return result;
+            } catch (Exception e) {
+                log.error("Skill 执行失败，降级到传统流程", e);
+                // 继续执行降级流程
+            }
+        }
+
+        // 2. 没有匹配的 Skill，降级到传统复杂度评估流程
+        log.info("未找到匹配的 Skill，使用传统复杂度评估流程");
+        return routeByComplexity(query, chatId);
+    }
+
+    /**
+     * 传统复杂度评估路由（降级方案）
+     */
+    private String routeByComplexity(String query, String chatId) {
         // 1. 评估查询复杂度
         QueryComplexity complexity = complexityAssessor.assess(query);
         log.info("复杂度评估结果: {}", complexity);
@@ -129,33 +162,75 @@ public class WorkflowOrchestrator {
 
     /**
      * 处理复杂查询（COMPLEX）
-     * 多意图，需要任务分解
+     * 多意图，需要任务分解 + 并行执行
      */
     private String handleComplexQuery(String query, String chatId) {
-        log.info("执行策略: COMPLEX（多意图，任务分解）");
+        log.info("执行策略: COMPLEX（多意图，任务分解 + 并行执行）");
 
         try {
             // 1. 任务分解
             List<SubTask> subTasks = taskDecomposer.decompose(query);
             log.info("任务分解完成，共 {} 个子任务", subTasks.size());
 
-            // 2. 依次执行子任务
+            // 2. 按依赖关系排序（拓扑排序）
+            List<List<SubTask>> batches = taskDecomposer.sortTasksByDependency(subTasks);
+            log.info("任务排序完成，共 {} 批次", batches.size());
+
+            // 3. 按批次执行（每批次内的任务可以并行执行）
             Map<String, String> results = new HashMap<>();
-            for (SubTask task : subTasks) {
-                log.info("执行子任务: {} - {}", task.getTaskType(), task.getDescription());
-                String result = executeSubTask(task);
-                results.put(task.getTaskType(), result);
-                task.setResult(result);
-                task.setSuccess(true);
+            for (int i = 0; i < batches.size(); i++) {
+                List<SubTask> batch = batches.get(i);
+                log.info("执行第 {} 批次，共 {} 个任务", i + 1, batch.size());
+
+                if (batch.size() == 1) {
+                    // 单个任务，直接执行
+                    SubTask task = batch.get(0);
+                    String result = executeSubTask(task);
+                    results.put(task.getTaskType() + "_" + task.getId(), result);
+                    task.setResult(result);
+                    task.setSuccess(true);
+                } else {
+                    // 多个任务，并行执行
+                    executeTasksInParallel(batch, results);
+                }
             }
 
-            // 3. LLM 整合结果
+            // 4. LLM 整合结果
             return integrateResults(query, results);
 
         } catch (Exception e) {
             log.error("复杂查询处理失败，降级为 LLM 决策", e);
             return enterpriseAssistantApp.doComprehensiveChat(query, chatId);
         }
+    }
+
+    /**
+     * 并行执行多个任务
+     */
+    private void executeTasksInParallel(List<SubTask> tasks, Map<String, String> results) {
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (SubTask task : tasks) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                try {
+                    log.info("并行执行子任务: {} - {}", task.getTaskType(), task.getDescription());
+                    String result = executeSubTask(task);
+                    synchronized (results) {
+                        results.put(task.getTaskType() + "_" + task.getId(), result);
+                    }
+                    task.setResult(result);
+                    task.setSuccess(true);
+                } catch (Exception e) {
+                    log.error("子任务执行失败: {}", task.getDescription(), e);
+                    task.setSuccess(false);
+                }
+            });
+            futures.add(future);
+        }
+
+        // 等待所有任务完成
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        log.info("批次执行完成");
     }
 
     /**
