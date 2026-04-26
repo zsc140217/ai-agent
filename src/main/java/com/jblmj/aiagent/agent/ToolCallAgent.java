@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Slf4j
-public class ToolCallAgent extends ReActAgent {
+public class ToolCallAgent extends EnhancedReActAgent {
 
     // 可用的工具
     private final ToolCallback[] availableTools;
@@ -54,10 +54,10 @@ public class ToolCallAgent extends ReActAgent {
     /**
      * 处理当前状态并决定下一步行动
      *
-     * @return 是否需要执行行动
+     * @return 思考结果描述
      */
     @Override
-    public boolean think() {
+    public String think() {
         // 1、校验提示词，拼接用户提示词
         if (StrUtil.isNotBlank(getNextStepPrompt())) {
             UserMessage userMessage = new UserMessage(getNextStepPrompt());
@@ -87,19 +87,26 @@ public class ToolCallAgent extends ReActAgent {
                     .map(toolCall -> String.format("工具名称：%s，参数：%s", toolCall.name(), toolCall.arguments()))
                     .collect(Collectors.joining("\n"));
             log.info(toolCallInfo);
-            // 如果不需要调用工具，返回 false
+
+            // 构建思考结果描述
+            StringBuilder thinkResult = new StringBuilder();
+            thinkResult.append(result != null ? result : "分析当前状态");
+
+            // 如果不需要调用工具
             if (toolCallList.isEmpty()) {
                 // 只有不调用工具时，才需要手动记录助手消息
                 getMessageList().add(assistantMessage);
-                return false;
+                thinkResult.append(" | 无需调用工具");
             } else {
                 // 需要调用工具时，无需记录助手消息，因为调用工具时会自动记录
-                return true;
+                thinkResult.append(" | 选择了 ").append(toolCallList.size()).append(" 个工具");
             }
+
+            return thinkResult.toString();
         } catch (Exception e) {
             log.error(getName() + "的思考过程遇到了问题：" + e.getMessage());
             getMessageList().add(new AssistantMessage("处理时遇到了错误：" + e.getMessage()));
-            return false;
+            return "思考失败：" + e.getMessage();
         }
     }
 
@@ -110,8 +117,10 @@ public class ToolCallAgent extends ReActAgent {
      */
     @Override
     public String act() {
-        if (!toolCallChatResponse.hasToolCalls()) {
-            return "没有工具需要调用";
+        if (toolCallChatResponse == null || !toolCallChatResponse.hasToolCalls()) {
+            String result = "没有工具需要调用";
+            saveActionResult(result);
+            return result;
         }
         // 调用工具
         Prompt prompt = new Prompt(getMessageList(), this.chatOptions);
@@ -130,6 +139,59 @@ public class ToolCallAgent extends ReActAgent {
                 .map(response -> "工具 " + response.name() + " 返回的结果：" + response.responseData())
                 .collect(Collectors.joining("\n"));
         log.info(results);
+
+        // 保存执行结果供 observe 使用
+        saveActionResult(results);
+
         return results;
+    }
+
+    /**
+     * 观察：提取工具调用结果的关键信息
+     */
+    @Override
+    protected String observe() {
+        String baseObservation = super.observe();
+
+        // 如果有工具调用响应，提取更详细的信息
+        if (toolCallChatResponse != null && toolCallChatResponse.hasToolCalls()) {
+            List<Message> messages = getMessageList();
+            if (!messages.isEmpty()) {
+                Message lastMessage = CollUtil.getLast(messages);
+                if (lastMessage instanceof ToolResponseMessage) {
+                    ToolResponseMessage toolResponse = (ToolResponseMessage) lastMessage;
+                    int successCount = (int) toolResponse.getResponses().stream()
+                            .filter(r -> !r.responseData().contains("错误") && !r.responseData().contains("失败"))
+                            .count();
+                    int totalCount = toolResponse.getResponses().size();
+
+                    return String.format("观察到：执行了 %d 个工具，%d 个成功。%s",
+                            totalCount, successCount, extractKeyInfo(baseObservation));
+                }
+            }
+        }
+
+        return baseObservation;
+    }
+
+    /**
+     * 反思：根据工具调用结果判断下一步策略
+     */
+    @Override
+    protected String reflect() {
+        // 先执行父类的基础反思
+        String baseReflection = super.reflect();
+
+        // 如果已经判断为完成或失败，直接返回
+        if (baseReflection.contains("任务完成") || baseReflection.contains("调整策略")) {
+            return baseReflection;
+        }
+
+        // 检查是否需要继续调用工具
+        if (toolCallChatResponse != null && toolCallChatResponse.hasToolCalls()) {
+            return "工具调用完成，等待下一步指令";
+        }
+
+        return baseReflection;
     }
 }

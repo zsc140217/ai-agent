@@ -2,6 +2,7 @@ package com.jblmj.aiagent.app;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jblmj.aiagent.model.ExecutionMode;
 import com.jblmj.aiagent.model.QueryComplexity;
 import com.jblmj.aiagent.model.SubTask;
 import com.jblmj.aiagent.service.ComplexityAssessor;
@@ -22,21 +23,21 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 工作流编排器 3.0 - 基于标准 Skill 架构
+ * 工作流编排器 4.0 - 支持用户主动选择执行模式
  *
  * 核心设计：
  * 1. Skill 是面向用户任务的功能单元（查天气、规划行程）
  * 2. Service 是框架层的能力（复杂度评估、任务分解）
  * 3. Tool 是原子能力（API 调用、数据库查询）
  *
- * 路由策略：
- * 1. 优先使用 Skill 处理（面向用户任务）
- * 2. 如果没有匹配的 Skill，降级到传统复杂度评估流程
+ * 执行模式：
+ * 1. DEFAULT（默认模式）：使用复杂度评估 + 并行执行（快速，5-10秒）
+ * 2. THINKING（思考模式）：使用 ReAct 循环（完整轨迹，15-30秒）
  *
- * 面试要点：
- * - Skill 是面向用户的任务，不是"能力"或"中间件"
- * - ComplexityAssessor、TaskDecomposer 是 Service，不是 Skill
- * - 这符合标准的 Skill 定义：一个任务一个 Skill
+ * 路由策略：
+ * 1. 根据用户指定的执行模式选择处理方式
+ * 2. 默认模式：使用复杂度评估流程（性能优先）
+ * 3. 思考模式：使用 ReAct Skill（完整轨迹优先）
  *
  * @author jblmj
  */
@@ -76,37 +77,63 @@ public class WorkflowOrchestrator {
     }
 
     /**
-     * 智能路由：根据用户意图选择执行策略
+     * 智能路由：根据用户指定的执行模式选择处理方式
      *
-     * 路由策略：
-     * 1. 优先尝试使用 Skill 处理（面向用户任务）
-     * 2. 如果没有匹配的 Skill，降级到传统复杂度评估流程
+     * @param query 用户查询
+     * @param chatId 会话 ID
+     * @param mode 执行模式（DEFAULT 或 THINKING）
+     * @return 响应结果
+     */
+    public String route(String query, String chatId, ExecutionMode mode) {
+        log.info("========================================");
+        log.info("工作流路由开始: {}", query);
+        log.info("执行模式: {} ({})", mode.getDisplayName(), mode.getDescription());
+        log.info("========================================");
+
+        // 根据执行模式选择处理方式
+        if (mode == ExecutionMode.THINKING) {
+            // 思考模式：使用 ReAct Skill（完整轨迹）
+            return routeByReActSkill(query, chatId);
+        } else {
+            // 默认模式：使用复杂度评估（快速响应）
+            return routeByComplexity(query, chatId);
+        }
+    }
+
+    /**
+     * 智能路由：根据用户意图选择执行策略（兼容旧接口）
      *
      * @param query 用户查询
      * @param chatId 会话 ID
      * @return 响应结果
      */
     public String route(String query, String chatId) {
-        log.info("========================================");
-        log.info("工作流路由开始: {}", query);
-        log.info("========================================");
+        // 默认使用 DEFAULT 模式
+        return route(query, chatId, ExecutionMode.DEFAULT);
+    }
 
-        // 1. 尝试使用 Skill 处理
+    /**
+     * ReAct Skill 路由（思考模式）
+     */
+    private String routeByReActSkill(String query, String chatId) {
+        log.info("使用思考模式（ReAct Skill）");
+
+        // 尝试使用 ReAct Skill 处理
         Skill skill = skillRegistry.selectSkill(query);
-        if (skill != null) {
-            log.info("使用 Skill: {}", skill.getName());
+        if (skill != null && skill.getName().contains("react")) {
+            log.info("使用 ReAct Skill: {}", skill.getName());
             try {
                 String result = skill.execute(query, chatId);
-                log.info("Skill 执行成功");
+                log.info("ReAct Skill 执行成功");
                 return result;
             } catch (Exception e) {
-                log.error("Skill 执行失败，降级到传统流程", e);
-                // 继续执行降级流程
+                log.error("ReAct Skill 执行失败，降级到复杂度评估", e);
+                // 降级到复杂度评估
             }
         }
 
-        // 2. 没有匹配的 Skill，降级到传统复杂度评估流程
-        log.info("未找到匹配的 Skill，使用传统复杂度评估流程");
+        // 如果没有匹配的 ReAct Skill，降级到复杂度评估
+        log.warn("未找到匹配的 ReAct Skill，降级到复杂度评估");
         return routeByComplexity(query, chatId);
     }
 

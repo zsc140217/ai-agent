@@ -187,6 +187,9 @@ public abstract class BaseAgent {
      * 清理资源
      */
     protected void cleanup() {
+        // 重置状态，允许 Agent 重复使用
+        this.state = AgentState.IDLE;
+        this.currentStep = 0;
         // 子类可以重写此方法来清理资源
     }
 }

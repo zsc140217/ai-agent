@@ -248,5 +248,55 @@
     "expected_keywords": ["500", "余杭塘路", "张总"],
     "expected_answer_contains": "余杭塘路",
     "should_not_contain": ["350"]
+  },
+  {
+    "id": 26,
+    "query": "北京出差不能住五星级酒店吗",
+    "difficulty": "hard",
+    "category": "否定查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["不能", "不可以", "四星及以下", "500元"],
+    "expected_answer_contains": "不能",
+    "should_not_contain": ["可以住五星", "允许五星"]
+  },
+  {
+    "id": 27,
+    "query": "出差不能坐商务舱对吗",
+    "difficulty": "hard",
+    "category": "否定查询",
+    "city_level": "通用",
+    "expected_keywords": ["不能", "不可以", "经济舱"],
+    "expected_answer_contains": "不能",
+    "should_not_contain": ["可以坐商务舱"]
+  },
+  {
+    "id": 28,
+    "query": "去二线城市不是500元住宿标准吗",
+    "difficulty": "hard",
+    "category": "否定查询",
+    "city_level": "二类城市",
+    "expected_keywords": ["不是", "350元", "二类城市"],
+    "expected_answer_contains": "350元",
+    "should_not_contain": ["500元"]
+  },
+  {
+    "id": 29,
+    "query": "打车报销后还不能领交通补助吗",
+    "difficulty": "hard",
+    "category": "否定查询",
+    "city_level": "通用",
+    "expected_keywords": ["不能", "取消", "二选一"],
+    "expected_answer_contains": "不能",
+    "should_not_contain": ["可以同时"]
+  },
+  {
+    "id": 30,
+    "query": "上海出差住宿标准不是350元吗",
+    "difficulty": "hard",
+    "category": "否定查询",
+    "city_level": "一类城市",
+    "expected_keywords": ["不是", "500元", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350元"]
   }
 ]

@@ -42,6 +42,7 @@ The backend runs on `http://localhost:8123/api`
 ./mvnw test -Dtest=AccuracyQualityTest        # RAG accuracy tests
 ./mvnw test -Dtest=ComplexityFrameworkTest    # Workflow orchestration tests
 ./mvnw test -Dtest=PerformanceStressTest      # Performance tests
+./mvnw test -Dtest=NegationQueryTest          # Negation query tests (new)
 ```
 
 ### API Endpoints
@@ -90,7 +91,8 @@ open http://localhost:8123/api/swagger-ui.html
 - Includes cyclic dependency detection
 
 **RAG Pipeline** ([src/main/java/com/jblmj/aiagent/rag/](src/main/java/com/jblmj/aiagent/rag/))
-- Query Rewriting: Converts colloquial queries to structured searches
+- Query Rewriting: Converts colloquial queries to structured searches, handles negation queries
+- Negation Detection: Detects negative keywords (不能、不是、没有) and rewrites queries to preserve negation semantics
 - Metadata Enrichment: Pre-annotates documents with city tier, expense types
 - Uses in-memory SimpleVectorStore (PgVector support commented out)
 - Achieves 80% accuracy (40% improvement over baseline)
@@ -324,6 +326,15 @@ src/main/resources/
 
 src/test/java/com/jblmj/aiagent/
 └── evaluation/             # Evaluation test suite
+    ├── RAGEvaluationTest.java       # 30 test cases (including negation queries)
+    ├── NegationQueryTest.java       # Negation query specific tests
+    ├── ComplexityFrameworkTest.java # Workflow orchestration tests
+    └── PerformanceStressTest.java   # Performance benchmarks
+
+docs/
+├── RAG_INTERVIEW_QA.md              # Interview Q&A for RAG issues
+├── EMBEDDING_MODELS_COMPARISON.md   # Detailed embedding model comparison
+└── RAG_INTERVIEW_CHEATSHEET.md      # Quick reference for interviews
 ```
 
 ## Performance Characteristics
