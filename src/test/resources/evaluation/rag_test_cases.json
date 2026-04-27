@@ -298,5 +298,155 @@
     "expected_keywords": ["不是", "500元", "一类城市"],
     "expected_answer_contains": "500元",
     "should_not_contain": ["350元"]
+  },
+  {
+    "id": 31,
+    "query": "去北京出差住宿预算5000元够吗",
+    "difficulty": "hard",
+    "category": "数值敏感性",
+    "city_level": "一类城市",
+    "expected_keywords": ["500元", "够", "10天"],
+    "expected_answer_contains": "够",
+    "should_not_contain": ["不够"]
+  },
+  {
+    "id": 32,
+    "query": "去北京出差住宿预算500元够吗",
+    "difficulty": "hard",
+    "category": "数值敏感性",
+    "city_level": "一类城市",
+    "expected_keywords": ["500元", "够", "1天"],
+    "expected_answer_contains": "够",
+    "should_not_contain": ["不够"]
+  },
+  {
+    "id": 33,
+    "query": "去北京出差住宿预算50元够吗",
+    "difficulty": "hard",
+    "category": "数值敏感性",
+    "city_level": "一类城市",
+    "expected_keywords": ["不够", "500元", "标准"],
+    "expected_answer_contains": "不够",
+    "should_not_contain": ["够"]
+  },
+  {
+    "id": 34,
+    "query": "出差3天伙食补助总共多少",
+    "difficulty": "medium",
+    "category": "数值计算",
+    "city_level": "通用",
+    "expected_keywords": ["100", "300", "3天"],
+    "expected_answer_contains": "300",
+    "should_not_contain": ["100元/天"]
+  },
+  {
+    "id": 35,
+    "query": "出差30天伙食补助总共多少",
+    "difficulty": "medium",
+    "category": "数值计算",
+    "city_level": "通用",
+    "expected_keywords": ["100", "3000", "30天"],
+    "expected_answer_contains": "3000",
+    "should_not_contain": ["300"]
+  },
+  {
+    "id": 36,
+    "query": "去上海出差，我是总监，住宿标准是多少",
+    "difficulty": "hard",
+    "category": "多跳推理",
+    "city_level": "一类城市",
+    "expected_keywords": ["总监", "500元", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["800元", "特殊标准"]
+  },
+  {
+    "id": 37,
+    "query": "去杭州拜访某某科技，然后规划路线",
+    "difficulty": "hard",
+    "category": "多跳推理",
+    "city_level": "一类城市",
+    "expected_keywords": ["余杭塘路", "张总", "路线"],
+    "expected_answer_contains": "余杭塘路",
+    "should_not_contain": ["中关村"]
+  },
+  {
+    "id": 38,
+    "query": "北京到上海高铁4小时，应该坐高铁还是飞机",
+    "difficulty": "hard",
+    "category": "多跳推理",
+    "city_level": "一类城市",
+    "expected_keywords": ["高铁", "4小时", "二等座"],
+    "expected_answer_contains": "高铁",
+    "should_not_contain": ["飞机"]
+  },
+  {
+    "id": 39,
+    "query": "北京到上海高铁6小时，应该坐高铁还是飞机",
+    "difficulty": "hard",
+    "category": "多跳推理",
+    "city_level": "一类城市",
+    "expected_keywords": ["飞机", "4小时", "经济舱"],
+    "expected_answer_contains": "飞机",
+    "should_not_contain": ["高铁"]
+  },
+  {
+    "id": 40,
+    "query": "2024年的差旅政策还有效吗",
+    "difficulty": "hard",
+    "category": "时间敏感性",
+    "city_level": "通用",
+    "expected_keywords": ["有效", "当前", "政策"],
+    "expected_answer_contains": "有效",
+    "should_not_contain": ["过期", "失效"]
+  },
+  {
+    "id": 41,
+    "query": "去Shanghai出差住宿标准",
+    "difficulty": "medium",
+    "category": "多语言混合",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "上海", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 42,
+    "query": "去BJ出差住宿能报多少",
+    "difficulty": "medium",
+    "category": "缩写识别",
+    "city_level": "一类城市",
+    "expected_keywords": ["500", "北京", "一类城市"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": ["350"]
+  },
+  {
+    "id": 43,
+    "query": "去一线城市出差住宿标准和去二线城市有什么区别",
+    "difficulty": "hard",
+    "category": "对比查询",
+    "city_level": "通用",
+    "expected_keywords": ["500元", "350元", "一类", "二类"],
+    "expected_answer_contains": "500元",
+    "should_not_contain": null
+  },
+  {
+    "id": 44,
+    "query": "北京和武汉的住宿标准哪个高",
+    "difficulty": "hard",
+    "category": "对比查询",
+    "city_level": "通用",
+    "expected_keywords": ["北京", "500元", "350元"],
+    "expected_answer_contains": "北京",
+    "should_not_contain": ["武汉更高"]
+  },
+  {
+    "id": 45,
+    "query": "这个政策适用于所有员工吗",
+    "difficulty": "hard",
+    "category": "上下文缺失",
+    "city_level": "通用",
+    "expected_keywords": ["适用", "全体", "员工"],
+    "expected_answer_contains": "适用",
+    "should_not_contain": null
   }
 ]

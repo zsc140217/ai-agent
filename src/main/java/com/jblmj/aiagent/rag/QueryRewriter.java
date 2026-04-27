@@ -8,92 +8,107 @@ import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransfo
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * 查询重写器
- * 增强功能：处理否定查询，避免"是这样"召回"不是这样"的问题
+ * 优化策略：
+ * 1. 口语化/多语言查询：字典替换（不调用LLM）
+ * 2. 否定查询：保留原样（LLM自己能理解）
+ * 3. 复杂查询：才调用LLM改写
  */
 @Component
 @Slf4j
 public class QueryRewriter {
 
     private final QueryTransformer queryTransformer;
-    private final ChatClient chatClient;
 
-    // 否定词模式
+    // 口语化表达字典
+    private static final Map<String, String> COLLOQUIAL_MAP = Map.of(
+            "魔都", "上海",
+            "帝都", "北京",
+            "BJ", "北京",
+            "SH", "上海",
+            "Shanghai", "上海",
+            "Beijing", "北京",
+            "GZ", "广州",
+            "SZ", "深圳"
+    );
+
+    // 否定词模式（用于检测，但不改写）
     private static final Pattern NEGATION_PATTERN = Pattern.compile(
             ".*(不是|不能|不可以|没有|不允许|禁止|不得|不要).*"
     );
 
     public QueryRewriter(ChatModel dashscopeChatModel) {
         ChatClient.Builder builder = ChatClient.builder(dashscopeChatModel);
-        this.chatClient = builder.build();
-        // 创建查询重写转换器
+        // 创建查询重写转换器（仅在复杂查询时使用）
         queryTransformer = RewriteQueryTransformer.builder()
                 .chatClientBuilder(builder)
                 .build();
     }
 
     /**
-     * 执行查询重写
-     *
-     * @param prompt
-     * @return
-     */
-    public String doQueryRewrite(String prompt) {
-        // 检测是否包含否定词
-        if (NEGATION_PATTERN.matcher(prompt).matches()) {
-            log.debug("检测到否定查询: {}", prompt);
-            return rewriteNegationQuery(prompt);
-        }
-
-        Query query = new Query(prompt);
-        // 执行查询重写
-        Query transformedQuery = queryTransformer.transform(query);
-        // 输出重写后的查询
-        return transformedQuery.text();
-    }
-
-    /**
-     * 处理否定查询的特殊重写逻辑
-     * 策略：将否定查询转换为肯定查询 + 标记，后续通过 LLM 理解否定语义
+     * 执行查询重写（优化版）
      *
      * @param prompt 原始查询
      * @return 重写后的查询
      */
-    private String rewriteNegationQuery(String prompt) {
-        String rewritePrompt = String.format("""
-                用户查询包含否定词，请将其改写为更适合检索的形式。
+    public String doQueryRewrite(String prompt) {
+        // Step 1: 字典替换口语化表达（不调用LLM）
+        String normalized = normalizeColloquial(prompt);
 
-                改写规则：
-                1. 保留否定语义，不要转换为肯定句
-                2. 提取核心查询意图
-                3. 添加相关关键词以提高召回
-
-                示例：
-                - "北京出差不能住五星级酒店吗" → "北京出差住宿标准 不能住五星级酒店"
-                - "出差不能坐商务舱对吗" → "出差交通标准 不能坐商务舱"
-                - "去二线城市不是500元住宿标准吗" → "二线城市住宿标准 不是500元"
-
-                用户查询：%s
-
-                只返回改写后的查询，不要解释。
-                """, prompt);
-
-        try {
-            String rewritten = chatClient.prompt()
-                    .user(rewritePrompt)
-                    .call()
-                    .content();
-            if (rewritten != null && !rewritten.trim().isEmpty()) {
-                log.debug("否定查询重写: {} -> {}", prompt, rewritten);
-                return rewritten;
-            }
-            return prompt;
-        } catch (Exception e) {
-            log.error("否定查询重写失败，使用原始查询: {}", e.getMessage());
-            return prompt;
+        // Step 2: 检测否定查询（保留原样，LLM自己能理解）
+        if (NEGATION_PATTERN.matcher(normalized).matches()) {
+            log.debug("检测到否定查询，保留原样: {}", normalized);
+            return normalized;
         }
+
+        // Step 3: 检测复杂查询（才调用LLM改写）
+        if (isComplexQuery(normalized)) {
+            log.debug("检测到复杂查询，使用LLM改写: {}", normalized);
+            return rewriteWithLLM(normalized);
+        }
+
+        // Step 4: 简单查询直接返回
+        log.debug("简单查询，直接返回: {}", normalized);
+        return normalized;
+    }
+
+    /**
+     * 标准化口语化表达（字典替换）
+     */
+    private String normalizeColloquial(String query) {
+        String result = query;
+        for (Map.Entry<String, String> entry : COLLOQUIAL_MAP.entrySet()) {
+            result = result.replace(entry.getKey(), entry.getValue());
+        }
+        if (!result.equals(query)) {
+            log.debug("口语化标准化: {} -> {}", query, result);
+        }
+        return result;
+    }
+
+    /**
+     * 判断是否为复杂查询
+     */
+    private boolean isComplexQuery(String query) {
+        // 多意图查询："去杭州拜访客户，住宿标准和客户地址"
+        // 对比查询："北京和上海的住宿标准哪个高"
+        boolean hasMultipleIntents = query.contains("，") && query.split("，").length > 1;
+        boolean hasComparison = query.contains("和") && (query.contains("哪个") || query.contains("对比"));
+
+        return hasMultipleIntents || hasComparison;
+    }
+
+    /**
+     * 使用LLM改写查询（仅复杂查询）
+     */
+    private String rewriteWithLLM(String query) {
+        Query q = new Query(query);
+        Query transformed = queryTransformer.transform(q);
+        log.debug("LLM改写: {} -> {}", query, transformed.text());
+        return transformed.text();
     }
 }
