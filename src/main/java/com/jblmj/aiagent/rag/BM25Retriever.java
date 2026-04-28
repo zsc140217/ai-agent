@@ -4,6 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,10 +57,118 @@ public class BM25Retriever {
     // IDF缓存
     private Map<String, Double> idfCache;
 
+    // 索引存储路径
+    private static final String INDEX_DIR = "data/bm25_index";
+    private static final String INDEX_FILE = "bm25_index.ser";
+
     /**
-     * 初始化索引
+     * 初始化索引（支持持久化）
+     *
+     * @param documents 文档列表
+     * @param forceRebuild 是否强制重建索引（true=重建，false=尝试加载已有索引）
+     */
+    public void buildIndex(List<Document> documents, boolean forceRebuild) {
+        // 尝试加载已有索引
+        if (!forceRebuild && loadIndex(documents)) {
+            log.info("成功加载已有BM25索引");
+            return;
+        }
+
+        // 构建新索引
+        buildIndexInternal(documents);
+
+        // 保存索引
+        saveIndex();
+    }
+
+    /**
+     * 初始化索引（默认尝试加载已有索引）
      */
     public void buildIndex(List<Document> documents) {
+        buildIndex(documents, false);
+    }
+
+    /**
+     * 保存索引到磁盘
+     */
+    private void saveIndex() {
+        try {
+            // 创建目录
+            Path indexPath = Paths.get(INDEX_DIR);
+            if (!Files.exists(indexPath)) {
+                Files.createDirectories(indexPath);
+            }
+
+            // 序列化索引数据
+            IndexData indexData = new IndexData(
+                    documents,
+                    invertedIndex,
+                    docLengths,
+                    avgDocLength,
+                    idfCache
+            );
+
+            Path filePath = indexPath.resolve(INDEX_FILE);
+            try (ObjectOutputStream oos = new ObjectOutputStream(
+                    new FileOutputStream(filePath.toFile()))) {
+                oos.writeObject(indexData);
+            }
+
+            log.info("BM25索引已保存到: {}", filePath.toAbsolutePath());
+        } catch (Exception e) {
+            log.error("保存BM25索引失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从磁盘加载索引
+     *
+     * @param documents 当前文档列表（用于验证索引是否匹配）
+     * @return 是否成功加载
+     */
+    private boolean loadIndex(List<Document> documents) {
+        try {
+            Path filePath = Paths.get(INDEX_DIR, INDEX_FILE);
+            if (!Files.exists(filePath)) {
+                log.info("BM25索引文件不存在，需要构建新索引");
+                return false;
+            }
+
+            // 反序列化索引数据
+            IndexData indexData;
+            try (ObjectInputStream ois = new ObjectInputStream(
+                    new FileInputStream(filePath.toFile()))) {
+                indexData = (IndexData) ois.readObject();
+            }
+
+            // 验证文档数量是否匹配
+            if (indexData.documents.size() != documents.size()) {
+                log.warn("索引文档数量不匹配（索引: {}, 当前: {}），需要重建",
+                        indexData.documents.size(), documents.size());
+                return false;
+            }
+
+            // 恢复索引数据
+            this.documents = indexData.documents;
+            this.invertedIndex = indexData.invertedIndex;
+            this.docLengths = indexData.docLengths;
+            this.avgDocLength = indexData.avgDocLength;
+            this.idfCache = indexData.idfCache;
+
+            log.info("成功加载BM25索引，文档数: {}, 词表大小: {}",
+                    documents.size(), invertedIndex.size());
+            return true;
+
+        } catch (Exception e) {
+            log.error("加载BM25索引失败: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 内部构建索引方法
+     */
+    private void buildIndexInternal(List<Document> documents) {
         log.info("开始构建BM25索引，文档数量: {}", documents.size());
         long startTime = System.currentTimeMillis();
 
@@ -245,13 +357,39 @@ public class BM25Retriever {
     /**
      * 词频记录
      */
-    private static class TermFreq {
+    private static class TermFreq implements Serializable {
+        private static final long serialVersionUID = 1L;
         String docId;
         int freq;
 
         TermFreq(String docId, int freq) {
             this.docId = docId;
             this.freq = freq;
+        }
+    }
+
+    /**
+     * 索引数据（用于序列化）
+     */
+    private static class IndexData implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        List<Document> documents;
+        Map<String, List<TermFreq>> invertedIndex;
+        Map<String, Integer> docLengths;
+        double avgDocLength;
+        Map<String, Double> idfCache;
+
+        IndexData(List<Document> documents,
+                  Map<String, List<TermFreq>> invertedIndex,
+                  Map<String, Integer> docLengths,
+                  double avgDocLength,
+                  Map<String, Double> idfCache) {
+            this.documents = documents;
+            this.invertedIndex = invertedIndex;
+            this.docLengths = docLengths;
+            this.avgDocLength = avgDocLength;
+            this.idfCache = idfCache;
         }
     }
 }

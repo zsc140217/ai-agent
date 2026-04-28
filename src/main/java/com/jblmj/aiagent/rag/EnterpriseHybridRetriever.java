@@ -30,6 +30,7 @@ public class EnterpriseHybridRetriever {
     private final VectorStore vectorStore;
     private final BM25Retriever bm25Retriever;
     private final EnterpriseQueryRewriter queryRewriter;
+    private final CrossEncoderReranker reranker;
 
     // RRF参数
     private static final int RRF_K = 60;
@@ -41,21 +42,23 @@ public class EnterpriseHybridRetriever {
 
     public EnterpriseHybridRetriever(VectorStore loveAppVectorStore,
                                      BM25Retriever bm25Retriever,
-                                     EnterpriseQueryRewriter queryRewriter) {
+                                     EnterpriseQueryRewriter queryRewriter,
+                                     CrossEncoderReranker reranker) {
         this.vectorStore = loveAppVectorStore;
         this.bm25Retriever = bm25Retriever;
         this.queryRewriter = queryRewriter;
+        this.reranker = reranker;
     }
 
     /**
-     * 三路召回 + RRF融合
+     * 三路召回 + RRF融合 + Cross-Encoder重排序
      *
      * @param originalQuery 原始查询
      * @param topK 返回Top-K结果
-     * @return 融合后的文档列表
+     * @return 重排后的文档列表
      */
     public List<Document> retrieve(String originalQuery, int topK) {
-        log.info("========== 开始三路召回 ==========");
+        log.info("========== 开始三路召回 + 重排序 ==========");
         log.info("原始查询: {}", originalQuery);
         log.info("目标Top-K: {}", topK);
 
@@ -67,8 +70,8 @@ public class EnterpriseHybridRetriever {
         long rewriteCost = System.currentTimeMillis() - rewriteStart;
         log.info("查询改写完成，耗时: {}ms, 改写后: {}", rewriteCost, rewrittenQuery);
 
-        // Step 2: 三路召回（召回2倍数量，后续融合）
-        int retrieveSize = topK * 2;
+        // Step 2: 三路召回（召回更多数量，为重排序准备）
+        int retrieveSize = topK * 10;  // 召回10倍数量用于重排
 
         // 路径1：BM25检索
         List<Document> bm25Results = retrieveWithMetrics(
@@ -94,18 +97,24 @@ public class EnterpriseHybridRetriever {
                 bm25Results,
                 denseOriginalResults,
                 denseRewrittenResults,
-                topK
+                retrieveSize  // 融合后保留更多文档用于重排
         );
         long fusionCost = System.currentTimeMillis() - fusionStart;
 
+        // Step 4: Cross-Encoder重排序
+        long rerankStart = System.currentTimeMillis();
+        List<Document> rerankedResults = reranker.rerank(originalQuery, fusedResults, topK);
+        long rerankCost = System.currentTimeMillis() - rerankStart;
+
         long totalCost = System.currentTimeMillis() - startTime;
 
-        log.info("========== 三路召回完成 ==========");
+        log.info("========== 三路召回 + 重排序完成 ==========");
         log.info("融合耗时: {}ms", fusionCost);
+        log.info("重排耗时: {}ms", rerankCost);
         log.info("总耗时: {}ms", totalCost);
-        log.info("最终返回: {} 个文档", fusedResults.size());
+        log.info("最终返回: {} 个文档", rerankedResults.size());
 
-        return fusedResults;
+        return rerankedResults;
     }
 
     /**

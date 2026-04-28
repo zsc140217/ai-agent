@@ -29,6 +29,9 @@ spring:
       base-url: http://localhost:11434
       chat:
         model: gemma3:1b
+      embedding:
+        options:
+          model: bge-m3  # 重排序模型（BGE系列，中文优化）
     mcp:
       client:
 #        sse:
