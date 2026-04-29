@@ -39,7 +39,7 @@ public class HttpAiInvoke {
 
         // 构建完整请求体
         JSONObject requestJson = new JSONObject();
-        requestJson.set("model", "qwen-plus");
+        requestJson.set("model", "qwen-max");
         requestJson.set("input", messagesJson);
         requestJson.set("parameters", parametersJson);
 

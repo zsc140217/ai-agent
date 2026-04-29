@@ -132,7 +132,7 @@ qweather:
 
 ### Model Configuration
 
-Default model: `qwen-plus-2025-07-28`
+Default model: `qwen-max-2025-07-28`
 
 To change models, update `application.yml`:
 ```yaml
@@ -141,7 +141,7 @@ spring:
     dashscope:
       chat:
         options:
-          model: qwen-plus-2025-07-28  # or qwen-turbo, qwen-max
+          model: qwen-max-2025-07-28  # or qwen-turbo, qwen-max
 ```
 
 ### Vector Store

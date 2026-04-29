@@ -30,7 +30,7 @@ public class EnterpriseHybridRetriever {
     private final VectorStore vectorStore;
     private final BM25Retriever bm25Retriever;
     private final EnterpriseQueryRewriter queryRewriter;
-    private final CrossEncoderReranker reranker;
+    private final SimpleReranker reranker;
 
     // RRF参数
     private static final int RRF_K = 60;
@@ -43,7 +43,7 @@ public class EnterpriseHybridRetriever {
     public EnterpriseHybridRetriever(VectorStore loveAppVectorStore,
                                      BM25Retriever bm25Retriever,
                                      EnterpriseQueryRewriter queryRewriter,
-                                     CrossEncoderReranker reranker) {
+                                     SimpleReranker reranker) {
         this.vectorStore = loveAppVectorStore;
         this.bm25Retriever = bm25Retriever;
         this.queryRewriter = queryRewriter;

@@ -2,6 +2,7 @@ package com.jblmj.aiagent.app;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jblmj.aiagent.agent.JblmjManus;
 import com.jblmj.aiagent.model.ExecutionMode;
 import com.jblmj.aiagent.model.QueryComplexity;
 import com.jblmj.aiagent.model.SubTask;
@@ -64,6 +65,9 @@ public class WorkflowOrchestrator {
     @org.springframework.beans.factory.annotation.Qualifier("dashscopeChatModel")
     private ChatModel chatModel;
 
+    @Resource
+    private JblmjManus jblmjManus;
+
     private ChatClient chatClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -114,27 +118,76 @@ public class WorkflowOrchestrator {
 
     /**
      * ReAct Skill 路由（思考模式）
+     * 使用 JblmjManus Agent 执行完整的 ReAct 循环
      */
     private String routeByReActSkill(String query, String chatId) {
-        log.info("使用思考模式（ReAct Skill）");
+        log.info("使用思考模式（ReAct Agent）");
 
-        // 尝试使用 ReAct Skill 处理
-        Skill skill = skillRegistry.selectSkill(query);
-        if (skill != null && skill.getName().contains("react")) {
-            log.info("使用 ReAct Skill: {}", skill.getName());
-            try {
-                String result = skill.execute(query, chatId);
-                log.info("ReAct Skill 执行成功");
-                return result;
-            } catch (Exception e) {
-                log.error("ReAct Skill 执行失败，降级到复杂度评估", e);
-                // 降级到复杂度评估
+        try {
+            // 构建增强的提示词
+            String enhancedPrompt = buildReActPrompt(query);
+
+            // 使用 JblmjManus 执行完整的 ReAct 循环
+            log.info("调用 JblmjManus Agent 执行 ReAct 循环");
+            String result = jblmjManus.run(enhancedPrompt);
+
+            log.info("ReAct Agent 执行成功");
+            return formatReActResult(result);
+
+        } catch (Exception e) {
+            log.error("ReAct Agent 执行失败，降级到复杂度评估", e);
+            // 降级到复杂度评估
+            return routeByComplexity(query, chatId);
+        }
+    }
+
+    /**
+     * 构建 ReAct 模式的提示词
+     */
+    private String buildReActPrompt(String query) {
+        return String.format("""
+                用户查询：%s
+
+                请按照 ReAct 框架处理这个查询：
+                1. Thought（思考）：分析用户需求，决定需要使用哪些工具
+                2. Action（行动）：调用相应的工具获取信息
+                3. Observation（观察）：分析工具返回的结果
+                4. Reflection（反思）：判断是否需要继续调用其他工具
+
+                可用的工具：
+                - queryWeather: 查询城市天气
+                - queryCustomer: 查询客户信息
+                - queryPolicy: 查询差旅政策
+                - queryHotel: 查询酒店推荐
+
+                注意：
+                - 每次使用工具后，观察结果并判断是否需要调整策略
+                - 如果工具调用失败，尝试其他方案
+                - 完成任务后使用 terminate 工具结束
+                """, query);
+    }
+
+    /**
+     * 格式化 ReAct 执行结果
+     */
+    private String formatReActResult(String result) {
+        // 提取最终答案（去除执行步骤的标记）
+        String[] lines = result.split("\n");
+        StringBuilder formatted = new StringBuilder();
+
+        formatted.append("【ReAct 执行结果】\n\n");
+
+        for (String line : lines) {
+            // 跳过执行步骤的标记
+            if (line.startsWith("Step") || line.contains("===") || line.contains("Executing")) {
+                continue;
+            }
+            if (!line.trim().isEmpty()) {
+                formatted.append(line).append("\n");
             }
         }
 
-        // 如果没有匹配的 ReAct Skill，降级到复杂度评估
-        log.warn("未找到匹配的 ReAct Skill，降级到复杂度评估");
-        return routeByComplexity(query, chatId);
+        return formatted.toString().trim();
     }
 
     /**

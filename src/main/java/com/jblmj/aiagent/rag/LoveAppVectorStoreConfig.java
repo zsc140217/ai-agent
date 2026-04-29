@@ -42,6 +42,8 @@ public class LoveAppVectorStoreConfig {
 
     // 向量数据库持久化文件路径
     private static final String VECTOR_STORE_FILE = "data/vectorstore.json";
+    // 文档缓存文件路径（避免重复调用LLM）
+    private static final String DOCUMENTS_CACHE_FILE = "data/documents-cache.ser";
 
     @Bean
     VectorStore loveAppVectorStore(EmbeddingModel dashscopeEmbeddingModel) {
@@ -59,11 +61,33 @@ public class LoveAppVectorStoreConfig {
             long loadTime = System.currentTimeMillis() - startTime;
             log.info("向量数据库加载完成，耗时: {} ms", loadTime);
 
-            // 重新加载文档用于BM25索引
-            log.info("加载文档用于BM25索引...");
-            documents = loveAppDocumentLoader.loadMarkdowns();
-            List<Document> enrichedDocuments = myKeywordEnricher.enrichDocuments(documents);
-            documents = enrichedDocuments;
+            // 尝试从缓存加载文档（避免重新调用LLM）
+            File docsCacheFile = new File(DOCUMENTS_CACHE_FILE);
+            if (docsCacheFile.exists()) {
+                log.info("检测到文档缓存文件，直接加载: {}", DOCUMENTS_CACHE_FILE);
+                try {
+                    documents = loadDocumentsFromCache(docsCacheFile);
+                    log.info("文档缓存加载完成，共 {} 个文档", documents.size());
+                } catch (Exception e) {
+                    log.warn("文档缓存加载失败，将重新加载: {}", e.getMessage());
+                    documents = null;
+                }
+            }
+
+            // 如果缓存加载失败，重新加载文档（但跳过LLM增强）
+            if (documents == null) {
+                log.info("加载文档用于BM25索引（跳过LLM增强以节省时间）...");
+                documents = loveAppDocumentLoader.loadMarkdowns();
+                log.info("文档加载完成，共 {} 个文档", documents.size());
+
+                // 保存到缓存
+                try {
+                    saveDocumentsToCache(documents, docsCacheFile);
+                    log.info("文档已缓存到: {}", DOCUMENTS_CACHE_FILE);
+                } catch (Exception e) {
+                    log.warn("文档缓存保存失败: {}", e.getMessage());
+                }
+            }
         } else {
             // 首次启动，需要加载文档并入库
             log.info("本地向量数据库文件不存在，开始初始化...");
@@ -94,11 +118,21 @@ public class LoveAppVectorStoreConfig {
             vectorStoreFile.getParentFile().mkdirs();
             simpleVectorStore.save(vectorStoreFile);
             log.info("保存完成！下次启动将直接加载，无需重新初始化");
+
+            // 5. 保存文档缓存
+            try {
+                File docsCacheFile = new File(DOCUMENTS_CACHE_FILE);
+                saveDocumentsToCache(documents, docsCacheFile);
+                log.info("文档已缓存到: {}", DOCUMENTS_CACHE_FILE);
+            } catch (Exception e) {
+                log.warn("文档缓存保存失败: {}", e.getMessage());
+            }
         }
 
-        // 5. 初始化BM25索引（企业级增强）
+        // 6. 初始化BM25索引（企业级增强）
         if (documents != null && !documents.isEmpty()) {
             log.info("========== 初始化BM25索引 ==========");
+            // BM25Retriever内部已经实现了持久化，会自动加载或构建索引
             bm25Retriever.buildIndex(documents);
             log.info("========== BM25索引初始化完成 ==========");
         } else {
@@ -106,5 +140,27 @@ public class LoveAppVectorStoreConfig {
         }
 
         return simpleVectorStore;
+    }
+
+    /**
+     * 保存文档到缓存
+     */
+    private void saveDocumentsToCache(List<Document> documents, File cacheFile) throws Exception {
+        cacheFile.getParentFile().mkdirs();
+        try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(
+                new java.io.FileOutputStream(cacheFile))) {
+            oos.writeObject(new java.util.ArrayList<>(documents));
+        }
+    }
+
+    /**
+     * 从缓存加载文档
+     */
+    @SuppressWarnings("unchecked")
+    private List<Document> loadDocumentsFromCache(File cacheFile) throws Exception {
+        try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
+                new java.io.FileInputStream(cacheFile))) {
+            return (List<Document>) ois.readObject();
+        }
     }
 }

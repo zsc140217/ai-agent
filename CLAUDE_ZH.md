@@ -130,7 +130,7 @@ qweather:
 
 ### 模型配置
 
-默认模型：`qwen-plus-2025-07-28`
+默认模型：`qwen-max-2025-07-28`
 
 修改模型，更新 `application.yml`：
 ```yaml
@@ -139,7 +139,7 @@ spring:
     dashscope:
       chat:
         options:
-          model: qwen-plus-2025-07-28  # 或 qwen-turbo、qwen-max
+          model: qwen-max-2025-07-28  # 或 qwen-turbo、qwen-max
 ```
 
 ### 向量存储

@@ -19,7 +19,7 @@ spring:
       api-key: sk-861e1fe002f04f8ea132731f38f0a566
       chat:
         options:
-          model: qwen-plus-2025-07-28
+          model: qwen-max
       embedding:
         options:
           # 可选模型：text-embedding-v1（默认）、text-embedding-v2、text-embedding-v3
@@ -31,7 +31,13 @@ spring:
         model: gemma3:1b
       embedding:
         options:
-          model: bge-m3  # 重排序模型（BGE系列，中文优化）
+          model: bge-m3  # 向量检索模型（BGE系列，中文优化）
+
+# Ollama 重排序配置
+ollama:
+  base-url: http://localhost:11434
+  reranker:
+    model: bge-reranker-v2-m3  # Cross-Encoder重排序模型
     mcp:
       client:
 #        sse:

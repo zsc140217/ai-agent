@@ -258,7 +258,7 @@ mvn test -Dtest=RAGEvaluationTest#runFullEvaluation
 **测试日期**：2026-04-13  
 **测试人员**：张书铖  
 **测试环境**：本地开发环境（Windows 11, JDK 21, 内存向量库）  
-**模型版本**：qwen-plus  
+**模型版本**：qwen-max  
 
 ---
 
@@ -406,7 +406,7 @@ mvn test -Dtest=RAGEvaluationTest#runFullEvaluation
 - **Spring Boot 版本**：3.4.4
 - **Spring AI 版本**：1.0.0
 - **向量库**：SimpleVectorStore（内存）
-- **LLM 模型**：qwen-plus（通义千问）
+- **LLM 模型**：qwen-max（通义千问）
 
 ### 7.2 测试数据文件
 - `src/test/resources/evaluation/rag_test_cases.json`

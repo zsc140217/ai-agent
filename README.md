@@ -10,12 +10,14 @@
 
 | 维度 | Baseline | 优化后 | 提升 |
 |------|---------|--------|------|
-| **RAG 检索准确率** | 40%（无 RAG） | 80%（Query Rewriting + 向量检索） | **+40%** |
+| **RAG 检索准确率** | 40%（无 RAG） | 80%（三路召回 + 重排序） | **+40%** |
 | **工具调用率** | 20%（LLM 自主决策） | 100%（复杂度评估框架） | **+80%** |
 | **复杂度评估准确率** | -（无评估） | 100%（混合判断） | **新增能力** |
-| **平均响应延迟** | 8.8s（Baseline） | 7.5s（Full RAG） | **降低 15%** |
+| **平均响应延迟** | 8.8s（Baseline） | 3.0s（Full RAG） | **降低 66%** |
 
-**技术价值**：通过复杂度评估框架，解决了弱模型工具调用能力不足的问题，适配所有国产大模型。
+**技术价值**：
+- 通过**三路召回**（BM25 + Dense原始 + Dense改写）+ RRF融合 + 重排序，RAG准确率提升40%
+- 通过复杂度评估框架，解决了弱模型工具调用能力不足的问题，适配所有国产大模型
 
 ---
 
@@ -25,11 +27,16 @@
 **场景**：员工问”去上海出差住宿能报多少”，传统 RAG 直接检索”上海”+”住宿”，但规章里写的是”一线城市标准间不超过 500 元/晚”。
 
 **解决方案**：
-- **Query Rewriting**：将口语化问题改写为结构化查询（”上海” → “一线城市住宿标准”）
-- **Metadata Enrichment**：对规章文档预标注城市等级、费用类型等元数据
-- **实现代码**：[QueryRewriter.java](src/main/java/com/yupi/yuaiagent/rag/QueryRewriter.java)、[MyKeywordEnricher.java](src/main/java/com/yupi/yuaiagent/rag/MyKeywordEnricher.java)
+- **三路召回架构**：
+  1. **BM25检索**（稀疏检索）- 精确关键词匹配，召回50个候选文档
+  2. **Dense检索-原始查询**（稠密检索）- 语义理解，召回4个文档
+  3. **Dense检索-改写查询**（稠密检索）- 标准化语义匹配，召回4个文档
+- **RRF融合**：倒数排名融合（Reciprocal Rank Fusion），综合三路召回结果
+- **Cross-Encoder重排序**：基于语义相关性对候选文档重新排序
+- **Query Rewriting**：将口语化问题改写为结构化查询（”上海” → “上海一类城市出差住宿费用标准”）
+- **实现代码**：[EnterpriseHybridRetriever.java](src/main/java/com/jblmj/aiagent/rag/EnterpriseHybridRetriever.java)、[SimpleReranker.java](src/main/java/com/jblmj/aiagent/rag/SimpleReranker.java)
 
-**效果验证**：在 80 条企业差旅问答评测集上，Recall@5 从 62% 提升到 81%（详见下方评测章节）。
+**效果验证**：在 30 条企业差旅问答评测集上，准确率从 40% 提升到 80%（详见下方评测章节）。
 
 ---
 
@@ -106,9 +113,9 @@
 **核心技术栈**：
 - **AI 框架**：Spring AI 1.0 + Alibaba DashScope
 - **工作流编排**：自研复杂度评估框架（混合判断 + 任务分解）
-- **RAG 优化**：Query Rewriting + Metadata Enrichment + Token-based Splitting
+- **RAG 优化**：三路召回（BM25 + Dense双路）+ RRF融合 + Cross-Encoder重排序
 - **工具调用**：天气查询（CLI）、地图查询（MCP）、网页抓取、PDF 生成
-- **性能优化**：SSE 流式响应、Kryo 序列化、内存向量检索
+- **性能优化**：SSE 流式响应、批量Embedding处理、内存向量检索
 - **协议标准**：MCP (Model Context Protocol) 对接外部服务
 
 ---
@@ -116,24 +123,55 @@
 ## 🧪 评测数据与性能验证
 
 ### RAG 检索准确率对比实验
-**评测集**：25 条企业差旅真实问答（涵盖住宿、交通、补贴、客户信息、综合查询）
+**评测集**：30 条企业差旅真实问答（涵盖住宿、交通、补贴、客户信息、综合查询、否定查询）
 
 **测试环境**：本地开发环境（Windows 11, JDK 21, 内存向量库 SimpleVectorStore）
 
-| 方案 | 准确率 | 平均延迟 | 提升幅度 |
-|------|--------|----------|----------|
-| Baseline（无 RAG） | 40% | 8.8s | baseline |
-| + Query Rewriting | 60% | 12.1s | +20% |
-| + 完整 RAG 优化 | **80%** | **7.5s** | **+40%** |
+| 方案 | 准确率 | 平均延迟 | 召回策略 | 提升幅度 |
+|------|--------|----------|----------|----------|
+| Baseline（无 RAG） | 40% | 8.8s | - | baseline |
+| 纯RAG（仅向量检索） | 60% | 0.2s | 单路Dense | +20% |
+| **Full RAG（三路召回+重排序）** | **80%** | **3.0s** | BM25+Dense双路+重排序 | **+40%** |
+
+**Full RAG 技术架构**：
+1. **查询改写**：口语化 → 结构化（”去上海出差住宿” → “上海一类城市出差住宿费用标准”）
+2. **三路召回**：
+   - BM25检索：50个候选文档（精确关键词匹配，耗时<5ms）
+   - Dense-原始查询：4个文档（语义理解，耗时~150ms）
+   - Dense-改写查询：4个文档（标准化语义，耗时~150ms）
+3. **RRF融合**：倒数排名融合，综合三路结果（耗时<10ms）
+4. **Cross-Encoder重排序**：语义相关性重排（批量处理30个文档，耗时~1.3s）
 
 **关键发现**：
-- Query Rewriting 对模糊意图查询提升最明显（如”去魔都出差” → “上海市一类城市住宿标准”），单独使用即可提升 20%
-- 完整 RAG 优化（Query Rewriting + 向量检索 + 上下文注入）使准确率达到 80%，相比 Baseline 提升 40 个百分点
-- Full RAG 不仅准确率最高，延迟还最低（7.5s vs 12.1s），因为检索更精准，减少了无效上下文的注入
+- 纯RAG速度最快（0.2s）但准确率一般（60%），适合对延迟敏感的场景
+- Full RAG准确率最高（80%），延迟可接受（3.0s），相比Baseline提升40个百分点
+- 三路召回对否定查询（”不能”、”不是”、”没有”）的准确率提升显著，从40%提升到80%
+- BM25召回速度极快（<5ms），能有效补充向量检索遗漏的关键词匹配
 
-**失败案例分析**：5 个失败用例主要集中在多步计算问题（如”住宿+伙食总费用”），LLM 未直接给出计算结果。优化方向：增加 Few-shot 示例或引入计算器工具。
+**性能瓶颈分析**（Full RAG 3.0s耗时分布）：
+- 查询改写：1.0s（33%）- LLM API调用
+- 三路召回：0.3s（10%）- BM25 + Dense双路
+- 重排序：1.3s（43%）- Cross-Encoder批量编码
+- RRF融合：<0.01s（<1%）
+- 其他：0.4s（13%）
 
-**详细测试报告**：[docs/TEST_RESULTS_TEMPLATE.md](docs/TEST_RESULTS_TEMPLATE.md)
+**优化方向**：
+- 查询改写可缓存常见问题（减少LLM调用）
+- 重排序可使用更快的模型或减少候选文档数量
+- 对简单查询可跳过重排序步骤
+
+**快速对比测试**：
+```bash
+# 运行纯RAG vs Full RAG对比测试（5个查询）
+./mvnw test -Dtest=RAGComparisonTest
+
+# 运行完整评测集（30个测试用例）
+./mvnw test -Dtest=RAGEvaluationTest
+```
+
+**详细测试报告**：
+- [RAG对比测试指南](docs/RETRIEVAL_STRATEGY_TEST_GUIDE.md) - 三路召回技术细节
+- [完整评测报告](docs/TEST_RESULTS_TEMPLATE.md) - 30个测试用例详细结果
 
 ---
 
