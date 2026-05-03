@@ -20,6 +20,15 @@ const routes = [
     }
   },
   {
+    path: '/enterprise-assistant-enhanced',
+    name: 'EnterpriseAssistantEnhanced',
+    component: () => import('../views/EnterpriseAssistantEnhanced.vue'),
+    meta: {
+      title: '企业出差管家（增强版） - 三层记忆系统',
+      description: '企业出差管家增强版，集成三层记忆系统，支持上下文理解、个性化推荐和执行模式切换'
+    }
+  },
+  {
     path: '/super-agent',
     name: 'SuperAgent',
     component: () => import('../views/SuperAgent.vue'),

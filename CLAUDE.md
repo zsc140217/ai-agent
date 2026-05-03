@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Enterprise Travel AI Agent platform built with Spring AI 1.0, implementing RAG + MCP + ReAct architecture for corporate travel policy Q&A and itinerary planning scenarios. The system solves weak model tool-calling limitations through a complexity assessment framework, achieving 100% tool invocation rate across all domestic LLMs.
+Enterprise Travel AI Agent platform built with Spring AI 1.0, implementing RAG + MCP + ReAct + **Three-Layer Memory System** for corporate travel policy Q&A and itinerary planning scenarios. The system solves weak model tool-calling limitations through a complexity assessment framework, achieving 100% tool invocation rate across all domestic LLMs.
 
 **Tech Stack**: Spring Boot 3.4, Spring AI 1.0, Alibaba DashScope (Qwen), Java 21, Maven
+
+**New Feature (Phase 2)**: Three-layer memory system for context retention and personalized recommendations
 
 ## Build & Run Commands
 
@@ -42,7 +44,10 @@ The backend runs on `http://localhost:8123/api`
 ./mvnw test -Dtest=AccuracyQualityTest        # RAG accuracy tests
 ./mvnw test -Dtest=ComplexityFrameworkTest    # Workflow orchestration tests
 ./mvnw test -Dtest=PerformanceStressTest      # Performance tests
-./mvnw test -Dtest=NegationQueryTest          # Negation query tests (new)
+./mvnw test -Dtest=NegationQueryTest          # Negation query tests
+
+# Memory system tests (NEW)
+./mvnw test -Dtest=MemorySystemIntegrationTest  # Three-layer memory integration tests
 ```
 
 ### API Endpoints
@@ -60,6 +65,11 @@ curl -N "http://localhost:8123/api/ai/enterprise/chat/sse?message=帮我规划�
 # ReAct Agent demo
 curl -N "http://localhost:8123/api/ai/manus/chat?message=查询公司到虹桥机场的距离"
 
+# Memory System APIs (NEW)
+curl http://localhost:8123/api/memory/working/test123          # Get working memory
+curl http://localhost:8123/api/memory/profile/user001          # Get user profile
+curl -X POST "http://localhost:8123/api/memory/learn?userId=user001&conversationId=test123"  # Trigger learning
+
 # Swagger UI
 open http://localhost:8123/api/swagger-ui.html
 ```
@@ -67,6 +77,12 @@ open http://localhost:8123/api/swagger-ui.html
 ## Architecture Overview
 
 ### Core Components
+
+**Three-Layer Memory System** ([src/main/java/com/jblmj/aiagent/chatmemory/](src/main/java/com/jblmj/aiagent/chatmemory/))
+- **Layer 1 (Short-term)**: File-based chat history with sliding window (20 messages)
+- **Layer 2 (Working)**: Entity extraction and intent tracking for current session
+- **Layer 3 (Long-term)**: User profile learning for personalized recommendations
+- See [MEMORY_SYSTEM_DESIGN.md](docs/MEMORY_SYSTEM_DESIGN.md) for detailed documentation
 
 **WorkflowOrchestrator** ([WorkflowOrchestrator.java](src/main/java/com/jblmj/aiagent/app/WorkflowOrchestrator.java))
 - Central routing engine that orchestrates all query processing

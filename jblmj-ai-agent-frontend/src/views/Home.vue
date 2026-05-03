@@ -24,7 +24,22 @@
           <span class="btn-icon">→</span>
         </div>
       </div>
-      
+
+      <!-- 新增：企业出差管家（增强版） -->
+      <div class="app-card enhanced-card" @click="navigateTo('/enterprise-assistant-enhanced')">
+        <div class="card-glow"></div>
+        <div class="enhanced-badge">🎯 增强版</div>
+        <div class="app-icon enhanced-icon">🧠</div>
+        <div class="app-info">
+          <div class="app-title">企业出差管家（增强版）</div>
+          <div class="app-desc">三层记忆系统 + 上下文理解 + 个性化推荐 + 模式切换</div>
+        </div>
+        <div class="app-button">
+          <span class="btn-text">体验记忆系统</span>
+          <span class="btn-icon">→</span>
+        </div>
+      </div>
+
       <div class="app-card" @click="navigateTo('/super-agent')">
         <div class="card-glow"></div>
         <div class="app-icon robot-icon">🤖</div>
@@ -160,15 +175,16 @@ const navigateTo = (path) => {
 .apps-container {
   display: flex;
   justify-content: center;
-  gap: 40px;
-  max-width: 1200px;
+  gap: 30px;
+  max-width: 1400px;
   margin: 40px auto;
   padding: 0 20px;
   z-index: 2;
+  flex-wrap: wrap;
 }
 
 .app-card {
-  width: 380px;
+  width: 360px;
   background: rgba(20, 20, 35, 0.6);
   border: 1px solid rgba(0, 240, 255, 0.2);
   border-radius: 20px;
@@ -176,12 +192,42 @@ const navigateTo = (path) => {
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  position: relative;
 }
 
 .app-card:hover {
   transform: translateY(-10px);
   border-color: var(--neon-blue);
   box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+/* 增强版卡片特殊样式 */
+.enhanced-card {
+  border: 2px solid rgba(144, 0, 255, 0.4);
+  background: rgba(30, 20, 45, 0.7);
+}
+
+.enhanced-card:hover {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 40px rgba(144, 0, 255, 0.3);
+}
+
+.enhanced-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #9000ff, #00f0ff);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .app-icon {
@@ -195,6 +241,13 @@ const navigateTo = (path) => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 10px rgba(0, 82, 204, 0.5));
+}
+
+.enhanced-icon {
+  background: linear-gradient(135deg, #9000ff, #ff00c1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 15px rgba(144, 0, 255, 0.6));
 }
 
 .robot-icon {

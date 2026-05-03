@@ -1,16 +1,14 @@
 package com.jblmj.aiagent.app;
 
 import com.jblmj.aiagent.advisor.MyLoggerAdvisor;
+import com.jblmj.aiagent.chatmemory.MemoryService;
 import com.jblmj.aiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
@@ -30,6 +28,9 @@ import java.util.List;
 public class EnterpriseAssistantApp {
 
     private final ChatClient chatClient;
+
+    @Resource
+    private MemoryService memoryService;
 
     // 1. 修改为人设：专业、高效、合规的出差管家
     private static final String SYSTEM_PROMPT = """
@@ -52,18 +53,13 @@ public class EnterpriseAssistantApp {
 
     /**
      * 初始化 ChatClient
+     * 改进：使用文件持久化的增强记忆系统
      */
-    public EnterpriseAssistantApp(ChatModel dashscopeChatModel) {
-        // 初始化基于内存的对话记忆
-        MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .chatMemoryRepository(new InMemoryChatMemoryRepository())
-                .maxMessages(20)
-                .build();
-
+    public EnterpriseAssistantApp(ChatModel dashscopeChatModel, ChatMemory enhancedChatMemory) {
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        MessageChatMemoryAdvisor.builder(enhancedChatMemory).build(),
                         new MyLoggerAdvisor()
                 )
                 .build();
@@ -123,13 +119,22 @@ public class EnterpriseAssistantApp {
 
     /**
      * 结合内部知识库（差旅制度、客户清单）进行对话
+     * 增强版：集成工作记忆的上下文
      */
     public String doChatWithCorporateKnowledge(String message, String chatId) {
-        // 查询重写：将“杭州差旅报销”改写为更适合检索的“企业在杭州的一类城市出差补贴标准”
+        // 查询重写：将”杭州差旅报销”改写为更适合检索的”企业在杭州的一类城市出差补贴标准”
         String rewrittenMessage = queryRewriter.doQueryRewrite(message);
+
+        // 获取工作记忆的上下文摘要
+        String contextSummary = memoryService.getContextSummary(chatId);
+        String enhancedSystemPrompt = SYSTEM_PROMPT;
+        if (!contextSummary.isEmpty()) {
+            enhancedSystemPrompt = SYSTEM_PROMPT + “\n\n” + contextSummary;
+        }
 
         ChatResponse chatResponse = chatClient
                 .prompt()
+                .system(enhancedSystemPrompt)
                 .user(rewrittenMessage)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .advisors(new QuestionAnswerAdvisor(loveAppVectorStore)) // 注入本地知识
@@ -145,12 +150,20 @@ public class EnterpriseAssistantApp {
     private ToolCallbackProvider toolCallbackProvider; // MCP 高德地图工具提供者
 
     /**
-     * 终极功能：结合 RAG 知识库 + MCP 实时地图
-     * 面试重点：演示“先查公司制度，再查地图距离”的多能力协同
+     * 终极功能：结合 RAG 知识库 + MCP 实时地图 + 工作记忆
+     * 面试重点：演示”先查公司制度，再查地图距离”的多能力协同
      */
     public String doComprehensiveChat(String message, String chatId) {
+        // 获取工作记忆的上下文摘要
+        String contextSummary = memoryService.getContextSummary(chatId);
+        String enhancedSystemPrompt = SYSTEM_PROMPT;
+        if (!contextSummary.isEmpty()) {
+            enhancedSystemPrompt = SYSTEM_PROMPT + “\n\n” + contextSummary;
+        }
+
         ChatResponse chatResponse = chatClient
                 .prompt()
+                .system(enhancedSystemPrompt)
                 .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .advisors(new MyLoggerAdvisor())

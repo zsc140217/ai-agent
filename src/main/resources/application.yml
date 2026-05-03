@@ -88,3 +88,13 @@ search-api:
 logging:
   level:
     org.springframework.ai: DEBUG
+
+# 对话记忆系统配置
+chat:
+  memory:
+    storage:
+      path: ./data/chat-history  # 短期记忆存储路径
+    window:
+      size: 20  # 滑动窗口大小（保留最近20条消息）
+    longterm:
+      path: ./data/user-profiles  # 长期记忆（用户画像）存储路径
