@@ -22,6 +22,7 @@ import java.util.List;
 public class EnterpriseQueryRewriter {
 
     private final ChatClient chatClient;
+    private final NegationQueryHandler negationHandler;
 
     // 企业领域知识库（扩展版）
     private static final String DOMAIN_KNOWLEDGE = """
@@ -123,8 +124,9 @@ public class EnterpriseQueryRewriter {
         原因：缩写展开（BJ→北京），补充分类信息
         """;
 
-    public EnterpriseQueryRewriter(ChatModel dashscopeChatModel) {
+    public EnterpriseQueryRewriter(ChatModel dashscopeChatModel, NegationQueryHandler negationHandler) {
         this.chatClient = ChatClient.builder(dashscopeChatModel).build();
+        this.negationHandler = negationHandler;
     }
 
     /**
@@ -136,20 +138,31 @@ public class EnterpriseQueryRewriter {
     public String rewrite(String originalQuery) {
         log.debug("开始查询重写，原始查询: {}", originalQuery);
 
-        // 构建改写Prompt
+        // 1. 检测否定查询，特殊处理
+        if (negationHandler.isNegationQuery(originalQuery)) {
+            log.info("检测到否定查询，使用专门处理器");
+            String handled = negationHandler.handleNegationQuery(originalQuery);
+            log.info("否定查询处理: {} -> {}", originalQuery, handled);
+            return handled;
+        }
+
+        // 2. 构建改写Prompt
         String rewritePrompt = buildRewritePrompt(originalQuery);
 
         try {
-            // 调用LLM改写
+            // 3. 调用LLM改写（Temperature=0.1，提升稳定性）
             String rewrittenQuery = chatClient.prompt()
                     .user(rewritePrompt)
+                    .options(org.springframework.ai.chat.prompt.ChatOptions.builder()
+                            .temperature(0.1)  // 低温度，提升稳定性
+                            .build())
                     .call()
                     .content();
 
-            // 清理改写结果（去除多余的解释）
+            // 4. 清理改写结果
             rewrittenQuery = cleanRewriteResult(rewrittenQuery);
 
-            // 验证改写质量
+            // 5. 验证改写质量
             if (isValidRewrite(originalQuery, rewrittenQuery)) {
                 log.info("查询重写成功: {} -> {}", originalQuery, rewrittenQuery);
                 return rewrittenQuery;
