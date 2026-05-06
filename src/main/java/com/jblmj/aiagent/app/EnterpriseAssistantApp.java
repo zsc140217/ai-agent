@@ -79,13 +79,24 @@ public class EnterpriseAssistantApp {
     }
 
     /**
-     * SSE 流式传输
+     * SSE 流式传输（增强版：支持工具调用）
      */
     public Flux<String> doChatByStream(String message, String chatId) {
+        // 获取工作记忆的上下文摘要
+        String contextSummary = memoryService.getContextSummary(chatId);
+        String enhancedSystemPrompt = SYSTEM_PROMPT;
+        if (!contextSummary.isEmpty()) {
+            enhancedSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextSummary;
+        }
+
         return chatClient
                 .prompt()
+                .system(enhancedSystemPrompt)
                 .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                .toolCallbacks(allTools)
+                .toolCallbacks(toolCallbackProvider)
                 .stream()
                 .content();
     }
@@ -122,14 +133,14 @@ public class EnterpriseAssistantApp {
      * 增强版：集成工作记忆的上下文
      */
     public String doChatWithCorporateKnowledge(String message, String chatId) {
-        // 查询重写：将”杭州差旅报销”改写为更适合检索的”企业在杭州的一类城市出差补贴标准”
+        // 查询重写：将"杭州差旅报销"改写为更适合检索的"企业在杭州的一类城市出差补贴标准"
         String rewrittenMessage = queryRewriter.doQueryRewrite(message);
 
         // 获取工作记忆的上下文摘要
         String contextSummary = memoryService.getContextSummary(chatId);
         String enhancedSystemPrompt = SYSTEM_PROMPT;
         if (!contextSummary.isEmpty()) {
-            enhancedSystemPrompt = SYSTEM_PROMPT + “\n\n” + contextSummary;
+            enhancedSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextSummary;
         }
 
         ChatResponse chatResponse = chatClient
@@ -151,14 +162,14 @@ public class EnterpriseAssistantApp {
 
     /**
      * 终极功能：结合 RAG 知识库 + MCP 实时地图 + 工作记忆
-     * 面试重点：演示”先查公司制度，再查地图距离”的多能力协同
+     * 面试重点：演示"先查公司制度，再查地图距离"的多能力协同
      */
     public String doComprehensiveChat(String message, String chatId) {
         // 获取工作记忆的上下文摘要
         String contextSummary = memoryService.getContextSummary(chatId);
         String enhancedSystemPrompt = SYSTEM_PROMPT;
         if (!contextSummary.isEmpty()) {
-            enhancedSystemPrompt = SYSTEM_PROMPT + “\n\n” + contextSummary;
+            enhancedSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextSummary;
         }
 
         ChatResponse chatResponse = chatClient

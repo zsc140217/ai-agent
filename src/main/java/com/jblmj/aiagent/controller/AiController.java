@@ -74,8 +74,9 @@ public class AiController {
         // 1. 处理用户消息（更新工作记忆）
         memoryService.processUserMessage(userId, chatId, message);
 
-        // 2. 调用LLM生成回复（流式）
-        return enterpriseAssistantApp.doChatByStream(message, chatId);
+        // 2. 调用LLM生成回复（流式），并在结束时发送 [DONE] 标记
+        return enterpriseAssistantApp.doChatByStream(message, chatId)
+                .concatWith(Flux.just("[DONE]"));
 
         // 注意：流式响应结束后无法同步触发学习，需要前端调用 /api/memory/learn 接口
         // 或者使用 doOnComplete() 回调

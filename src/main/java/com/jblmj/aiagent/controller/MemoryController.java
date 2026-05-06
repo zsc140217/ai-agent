@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 3. 展示GDPR合规的数据删除功能
  */
 @RestController
-@RequestMapping("/api/memory")
+@RequestMapping("/memory")
 @Slf4j
 public class MemoryController {
 

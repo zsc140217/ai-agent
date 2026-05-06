@@ -183,6 +183,7 @@ const sendMessage = (message) => {
   addMessage('', false)
 
   connectionStatus.value = 'connecting'
+  let isDone = false // 标记是否正常完成
 
   // 根据执行模式选择不同的API
   if (executionMode.value === 'default') {
@@ -198,6 +199,7 @@ const sendMessage = (message) => {
       }
 
       if (data === '[DONE]') {
+        isDone = true
         connectionStatus.value = 'disconnected'
         eventSource.close()
         showStatus('✅ 回复完成（快速模式）', 'success')
@@ -205,6 +207,10 @@ const sendMessage = (message) => {
     }
 
     eventSource.onerror = (error) => {
+      // 如果已经正常完成，忽略关闭时的错误事件
+      if (isDone) {
+        return
+      }
       console.error('SSE Error:', error)
       connectionStatus.value = 'error'
       eventSource.close()
@@ -223,6 +229,7 @@ const sendMessage = (message) => {
       }
 
       if (data === '[DONE]') {
+        isDone = true
         connectionStatus.value = 'disconnected'
         eventSource.close()
         showStatus('✅ 回复完成（思考模式）', 'success')
@@ -230,6 +237,10 @@ const sendMessage = (message) => {
     }
 
     eventSource.onerror = (error) => {
+      // 如果已经正常完成，忽略关闭时的错误事件
+      if (isDone) {
+        return
+      }
       console.error('SSE Error:', error)
       connectionStatus.value = 'error'
       eventSource.close()
