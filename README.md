@@ -465,12 +465,52 @@ curl -N "http://localhost:8123/api/ai/manus/chat?message=查询公司到虹桥�
 
 ---
 
+## 🔗 相关项目
+
+### LangChain 版本实现
+本项目有一个对应的 **LangChain (Python) 版本**，实现了相同的核心功能，可用于框架对比学习：
+
+**仓库地址**：[langchain-business-trip-management](https://github.com/zsc140217/langchain-business-trip-management)
+
+**核心差异对比**：
+
+| 维度 | Spring AI (本项目) | LangChain 版本 |
+|------|-------------------|---------------|
+| **语言** | Java 21 | Python 3.10+ |
+| **架构模式** | Advisor 模式（洋葱架构） | Chain 模式（流水线） |
+| **类型安全** | 强类型（编译时检查） | 弱类型（运行时检查） |
+| **可观测性** | 日志 + 手动埋点 | LangSmith 自动追踪 ⭐ |
+| **学习曲线** | 陡峭（需理解 Spring 生态） | 平缓（函数式编程） |
+| **适用场景** | 企业级应用、长期维护 | 快速原型、研究实验 |
+| **Skill 系统** | ✅ 已实现（注解自动注册） | ⏳ 待实现 |
+| **三层记忆系统** | ✅ 已实现 | ✅ 已实现 |
+| **混合检索** | ✅ BM25+Dense+重排序 | ✅ BM25+Dense+RRF |
+
+**LangChain 版本的独特优势**：
+- **LangSmith 可观测性** ⭐⭐⭐⭐⭐：零代码侵入，自动追踪所有调用链，可视化树状结构，5分钟定位问题
+- **开发速度快**：函数式编程风格，代码量约为 Spring AI 版本的 60%
+- **生态丰富**：原生支持 100+ 工具和集成
+
+**Spring AI 版本的独特优势**：
+- **企业级稳定性**：强类型、编译时检查、完善的异常处理
+- **Spring 生态集成**：无缝对接 Spring Boot、Spring Security、Spring Cloud
+- **Skill 架构**：标准化的任务定义和自动注册机制
+
+**学习建议**：
+- 如果你是 **Java 开发者**或需要 **企业级应用**，推荐本项目（Spring AI）
+- 如果你想 **快速验证想法**或进行 **AI 研究**，推荐 LangChain 版本
+- **最佳实践**：两个版本都学习，深入理解不同框架的设计哲学
+
+---
+
 ## 📚 参考资料
 
 - [Spring AI 官方文档](https://docs.spring.io/spring-ai/reference/)
 - [通义千问 API 文档](https://help.aliyun.com/zh/dashscope/)
 - [MCP 协议规范](https://modelcontextprotocol.io/)
 - [ReAct 论文](https://arxiv.org/abs/2210.03629)
+- [LangChain 官方文档](https://python.langchain.com/)
+- [LangSmith 可观测性平台](https://smith.langchain.com/)
 
 ---
 

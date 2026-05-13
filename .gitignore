@@ -2,6 +2,10 @@
 application-local.yml
 tmp
 
+### OpenClaw ###
+openclaw-config*.json
+demo-claude-cli.sh
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar

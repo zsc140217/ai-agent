@@ -1,0 +1,8 @@
+# Python LangChain + 通义千问依赖
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-core==0.1.52
+dashscope>=1.14.0
+
+# 可选：如果需要异步支持
+httpx>=0.24.0

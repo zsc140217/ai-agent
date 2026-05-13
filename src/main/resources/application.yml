@@ -24,7 +24,7 @@ spring:
         options:
           # 可选模型：text-embedding-v1（默认）、text-embedding-v2、text-embedding-v3
           # v2/v3 可能有更好的效果，但需要确认你的百炼账号是否有额度
-          model: text-embedding-v2
+          model: text-embedding-v3
     ollama:
       base-url: http://localhost:11434
       chat:

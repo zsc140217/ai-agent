@@ -1,0 +1,16 @@
+{
+  "userId" : "user_hlcngahe",
+  "cityVisitCount" : {
+    "上海" : 1
+  },
+  "preferredHotelLevel" : null,
+  "tripSummaries" : [ {
+    "destination" : "上海",
+    "timestamp" : 1777820894241,
+    "intents" : [ "查询天气", "查询酒店" ],
+    "hotelName" : null,
+    "customerName" : null
+  } ],
+  "createdAt" : 1777820894241,
+  "updatedAt" : 1777820894241
+}

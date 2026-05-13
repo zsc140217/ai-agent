@@ -8,6 +8,8 @@ Enterprise Travel AI Agent platform built with Spring AI 1.0, implementing RAG +
 
 **Tech Stack**: Spring Boot 3.4, Spring AI 1.0, Alibaba DashScope (Qwen), Java 21, Maven
 
+**Related Project**: A [LangChain (Python) version](https://github.com/zsc140217/langchain-business-trip-management) of this project exists for framework comparison. Key differences: Spring AI uses Advisor pattern (enterprise-grade), LangChain uses Chain pattern (rapid prototyping). LangChain version includes LangSmith observability (zero-code tracing) which is a major advantage over Spring AI's manual logging approach.
+
 **New Feature (Phase 2)**: Three-layer memory system for context retention and personalized recommendations
 
 ## Build & Run Commands
@@ -48,6 +50,18 @@ The backend runs on `http://localhost:8123/api`
 
 # Memory system tests (NEW)
 ./mvnw test -Dtest=MemorySystemIntegrationTest  # Three-layer memory integration tests
+
+# Performance and JVM tests (NEW)
+./mvnw test -Dtest=VectorStoreLoadTest          # Vector store pressure test
+```
+
+### Performance Monitoring APIs (NEW)
+
+```bash
+# JVM real-time monitoring
+curl http://localhost:8123/api/monitor/jvm/status    # Current JVM status
+curl http://localhost:8123/api/monitor/jvm/metrics   # Historical metrics (last 1 hour)
+curl -X POST http://localhost:8123/api/monitor/jvm/gc  # Trigger GC (testing only)
 ```
 
 ### API Endpoints
@@ -83,6 +97,12 @@ open http://localhost:8123/api/swagger-ui.html
 - **Layer 2 (Working)**: Entity extraction and intent tracking for current session
 - **Layer 3 (Long-term)**: User profile learning for personalized recommendations
 - See [MEMORY_SYSTEM_DESIGN.md](docs/MEMORY_SYSTEM_DESIGN.md) for detailed documentation
+
+**JVM Monitoring & Performance** ([src/main/java/com/jblmj/aiagent/monitor/](src/main/java/com/jblmj/aiagent/monitor/))
+- **JVMMetricsCollector**: Collects JVM metrics every 10 seconds (heap, GC, threads, classes)
+- **MonitorController**: REST API for real-time JVM status monitoring
+- **Performance Tests**: Vector store load tests and memory leak detection
+- See [jvm-tuning-guide.md](docs/performance/jvm-tuning-guide.md) for tuning practices
 
 **WorkflowOrchestrator** ([WorkflowOrchestrator.java](src/main/java/com/jblmj/aiagent/app/WorkflowOrchestrator.java))
 - Central routing engine that orchestrates all query processing
