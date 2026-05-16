@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Reference
+
+**Architecture**: See [docs/CODEMAPS/architecture.md](docs/CODEMAPS/architecture.md)  
+**API Endpoints**: See [docs/CODEMAPS/api-endpoints.md](docs/CODEMAPS/api-endpoints.md)
+
 ## Project Overview
 
 Enterprise Travel AI Agent platform built with Spring AI 1.0, implementing RAG + MCP + ReAct + **Three-Layer Memory System** for corporate travel policy Q&A and itinerary planning scenarios. The system solves weak model tool-calling limitations through a complexity assessment framework, achieving 100% tool invocation rate across all domestic LLMs.
