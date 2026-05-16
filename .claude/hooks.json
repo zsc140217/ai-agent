@@ -6,16 +6,24 @@
       "description": "扫描敏感信息泄露"
     },
     {
-      "name": "run-tests",
-      "command": "./mvnw test -Dtest=RAGEvaluationTest",
-      "description": "运行RAG评估测试",
-      "timeout": 60000
+      "name": "quick-test",
+      "command": "bash scripts/quick-test.sh",
+      "description": "运行快速测试套件",
+      "timeout": 120000
+    }
+  ],
+  "pre:push:*": [
+    {
+      "name": "full-test",
+      "command": "bash scripts/full-test.sh",
+      "description": "运行完整测试套件",
+      "timeout": 300000
     }
   ],
   "post:commit:*": [
     {
       "name": "commit-success",
-      "command": "echo '✅ 提交成功，测试通过'",
+      "command": "echo '✅ 提交成功，快速测试通过'",
       "description": "提交成功提示"
     }
   ],
