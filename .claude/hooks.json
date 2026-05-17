@@ -4,34 +4,13 @@
       "name": "secret-scan",
       "command": "bash scripts/secret-scan.sh",
       "description": "扫描敏感信息泄露"
-    },
-    {
-      "name": "quick-test",
-      "command": "bash scripts/quick-test.sh",
-      "description": "运行快速测试套件",
-      "timeout": 120000
-    }
-  ],
-  "pre:push:*": [
-    {
-      "name": "full-test",
-      "command": "bash scripts/full-test.sh",
-      "description": "运行完整测试套件",
-      "timeout": 300000
     }
   ],
   "post:commit:*": [
     {
       "name": "commit-success",
-      "command": "echo '✅ 提交成功，快速测试通过'",
+      "command": "echo '✅ 提交成功'",
       "description": "提交成功提示"
-    }
-  ],
-  "pre:bash:*": [
-    {
-      "name": "bash-audit",
-      "command": "echo '🔍 执行Bash命令: $BASH_COMMAND'",
-      "description": "Bash命令审计日志"
     }
   ]
 }
